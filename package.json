@@ -1,16 +1,17 @@
 {
   "name": "ggscreener",
   "version": "1.0.0",
-  "main": "volume-signal-detector.js",
+  "main": "anomalyDetector.js",
   "scripts": {
-    "dev": "set NODE_ENV=development&& node volume-signal-detector.js",
-    "start": "node volume-signal-detector.js"
+    "dev": "set NODE_ENV=development&& node anomalyDetector.js",
+    "start": "node anomalyDetector.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "axios": "^1.10.0",
     "ccxt": "^4.4.94",
     "dotenv": "^17.2.0",
     "node-telegram-bot-api": "^0.66.0"

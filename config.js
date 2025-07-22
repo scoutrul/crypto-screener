@@ -1,14 +1,21 @@
 // config.js
 require('dotenv').config();
 
+function requireEnv(name) {
+  if (!process.env[name]) {
+    throw new Error(`Не указана обязательная переменная окружения: ${name}`);
+  }
+  return process.env[name];
+}
+
 module.exports = {
   telegram: {
-    botToken: process.env.TELEGRAM_BOT_TOKEN || '8166427966:AAFpTC8o4PkbXo4VEb-wM5ZSxtw7GoCeYz4',
-    chatId: process.env.TELEGRAM_CHAT_ID || '-4825810353'
+    botToken: requireEnv('TELEGRAM_BOT_TOKEN'),
+    chatId: requireEnv('TELEGRAM_CHAT_ID')
   },
   monitoring: {
-    symbols: process.env.SYMBOLS ? process.env.SYMBOLS.split(',') : ['BONK/USDT', 'PEPE/USDT', 'LDO/USDT', 'TRX/USDT', 'XLM/USDT'],
-    checkIntervalMinutes: parseInt(process.env.CHECK_INTERVAL_MINUTES) || 5
+    symbols: requireEnv('SYMBOLS').split(','),
+    checkIntervalMinutes: parseInt(requireEnv('CHECK_INTERVAL_MINUTES'))
   },
   thresholds: {
     '15m': { window: '4h', percent: 10 },
