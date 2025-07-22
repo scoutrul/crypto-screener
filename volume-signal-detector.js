@@ -26,6 +26,10 @@ const timeframeToMs = {
 
 // Функция отправки сообщения в Telegram
 async function sendTelegramMessage(message) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🟡 [DEV] Сообщение (только консоль, не отправлено в Telegram):\n' + message);
+    return;
+  }
   try {
     await bot.sendMessage(config.telegram.chatId, message, { parse_mode: 'HTML' });
     console.log('✅ Сообщение отправлено в Telegram');
