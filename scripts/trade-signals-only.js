@@ -112,9 +112,9 @@ class TradeSignalsMonitor {
     const priceDiff = (anomalyPrice - historicalPrice) / historicalPrice;
     
     if (priceDiff > CONFIG.priceThreshold) {
-      return 'Long';
-    } else if (priceDiff < -CONFIG.priceThreshold) {
       return 'Short';
+    } else if (priceDiff < -CONFIG.priceThreshold) {
+      return 'Long';
     }
     
     return null;

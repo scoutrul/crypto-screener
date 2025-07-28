@@ -119,11 +119,11 @@ class AnomalyMonitor {
     console.log(`   🔍 Детальный анализ: аномальная=${anomalyPrice.toFixed(6)}, историческая=${historicalPrice.toFixed(6)}, изменение=${(priceDiff * 100).toFixed(2)}%`);
     
     if (priceDiff > CONFIG.priceThreshold) {
-      console.log(`   📈 Определен как Long: ${(priceDiff * 100).toFixed(2)}% > ${(CONFIG.priceThreshold * 100).toFixed(1)}%`);
-      return 'Long';
-    } else if (priceDiff < -CONFIG.priceThreshold) {
-      console.log(`   📉 Определен как Short: ${(priceDiff * 100).toFixed(2)}% < -${(CONFIG.priceThreshold * 100).toFixed(1)}%`);
+      console.log(`   📉 Определен как Short: ${(priceDiff * 100).toFixed(2)}% > ${(CONFIG.priceThreshold * 100).toFixed(1)}% (ожидаем падение после роста)`);
       return 'Short';
+    } else if (priceDiff < -CONFIG.priceThreshold) {
+      console.log(`   📈 Определен как Long: ${(priceDiff * 100).toFixed(2)}% < -${(CONFIG.priceThreshold * 100).toFixed(1)}% (ожидаем рост после падения)`);
+      return 'Long';
     }
     
     console.log(`   ❓ Неопределен: ${(priceDiff * 100).toFixed(2)}% между -${(CONFIG.priceThreshold * 100).toFixed(1)}% и ${(CONFIG.priceThreshold * 100).toFixed(1)}%`);
