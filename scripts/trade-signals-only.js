@@ -60,19 +60,32 @@ class TradeSignalsMonitor {
   }
 
   /**
-   * Получить свечи с Binance
+   * Получить свечи с Binance с повторными попытками
    */
-  async fetchCandles(symbol, since, limit = 100) {
-    try {
-      return await this.exchange.fetchOHLCV(symbol, CONFIG.timeframe, since, limit);
-    } catch (error) {
-      if (error.message.includes('does not have market symbol')) {
-        console.log(`⚠️ ${symbol} не торгуется на Binance, пропускаем`);
-      } else {
-        console.error(`Ошибка получения свечей для ${symbol}:`, error.message);
+  async fetchCandles(symbol, since, limit = 100, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        return await this.exchange.fetchOHLCV(symbol, CONFIG.timeframe, since, limit);
+      } catch (error) {
+        if (error.message.includes('does not have market symbol')) {
+          console.log(`⚠️ ${symbol} не торгуется на Binance, пропускаем`);
+          return [];
+        } else if (error.message.includes('timeout') || error.message.includes('fetch failed')) {
+          if (attempt < retries) {
+            console.log(`⏳ Таймаут для ${symbol}, попытка ${attempt}/${retries}, повтор через 2 сек...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            continue;
+          } else {
+            console.error(`❌ Ошибка получения свечей для ${symbol} после ${retries} попыток:`, error.message);
+            return [];
+          }
+        } else {
+          console.error(`❌ Ошибка получения свечей для ${symbol}:`, error.message);
+          return [];
+        }
       }
-      return [];
     }
+    return [];
   }
 
   /**
@@ -139,6 +152,8 @@ class TradeSignalsMonitor {
    * Создать сообщение о сделке
    */
   createTradeMessage(symbol, tradeType, currentPrice) {
+    const ticker = symbol.replace('/USDT', '');
+    const emoji = tradeType === 'Long' ? '🟢' : '🔴';
     const stopLoss = tradeType === 'Long' 
       ? currentPrice * (1 - CONFIG.stopLossPercent)
       : currentPrice * (1 + CONFIG.stopLossPercent);
@@ -147,21 +162,17 @@ class TradeSignalsMonitor {
       ? currentPrice * (1 + CONFIG.takeProfitPercent)
       : currentPrice * (1 - CONFIG.takeProfitPercent);
 
-    return `🚨 <b>СИГНАЛ ${tradeType.toUpperCase()}</b>
+    return `${ticker} → ${tradeType} ${emoji}
 
-📊 <b>TICKER:</b> ${symbol.replace('/USDT', '')}
-🏢 <b>Биржи:</b> ${CONFIG.exchanges.join(' / ')}
-💰 <b>Вход:</b> $${currentPrice.toFixed(6)}
-🛑 <b>Стоп:</b> $${stopLoss.toFixed(6)}
-🎯 <b>Тейк:</b> $${takeProfit.toFixed(6)}
-📈 <b>Объем:</b> не более ${(CONFIG.maxDepositPercent * 100).toFixed(1)}% от депозита
-⏰ <b>Отработка:</b> до нескольких часов
+Биржи: Binance, Bybit, OKX, BingX
+Вход: $${currentPrice.toFixed(6)}
+Стоп: $${stopLoss.toFixed(6)}
+Тейк: $${takeProfit.toFixed(6)}
+Объем: не более 2.0% от депозита
+Отработка: до нескольких часов
 
-💡 <b>Советы:</b>
-✔️ При отработке сделки на ${(CONFIG.breakEvenPercent * 100).toFixed(0)}%, не забудьте поставить стоп в безубыток ${tradeType === 'Long' ? 'чуть выше' : 'чуть ниже'} точки входа
-✔️ Вы можете закрыть сделку в прибыль раньше тейка при изменении тренда
-
-🕐 <b>Время:</b> ${new Date().toLocaleString('ru-RU')}`;
+✔️ При отработке сделки на 20%, не забудьте поставить стоп в безубыток ${tradeType === 'Long' ? 'чуть выше' : 'чуть ниже'} точки входа
+✔️ Вы можете закрыть сделку в прибыль раньше тейка при изменении тренда`;
   }
 
   /**
