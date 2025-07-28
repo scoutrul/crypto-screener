@@ -15,7 +15,12 @@
     "falling": "node src/cli.js falling",
     "test": "node src/cli.js test",
     "help": "node src/cli.js help",
-    "filter:marketcap": "node scripts/filter-by-market-cap-compact.js"
+    "filter:marketcap": "node scripts/filter-by-market-cap-compact.js",
+    "save:coins": "node scripts/save-filtered-coins.js",
+    "monitor:anomalies": "node scripts/anomaly-monitor.js",
+    "monitor:signals": "node scripts/trade-signals-only.js",
+    "test:anomaly": "node scripts/test-anomaly-logic.js",
+    "filter:binance": "node scripts/filter-binance-coins.js"
   },
   "keywords": [
     "crypto",
