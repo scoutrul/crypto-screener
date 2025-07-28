@@ -1,19 +1,49 @@
 {
-  "name": "ggscreener",
-  "version": "1.0.0",
-  "main": "anomalyDetector.js",
+  "name": "crypto-screener",
+  "version": "2.0.0",
+  "description": "Crypto Screener с чистой архитектурой и DDD",
+  "main": "src/app.js",
   "scripts": {
-    "dev": "set NODE_ENV=development&& node anomalyDetector.js",
-    "start": "node anomalyDetector.js"
+    "start": "node src/app.js",
+    "dev": "set NODE_ENV=development&& node src/app.js",
+    "cli": "node src/cli.js",
+    "summary": "node src/cli.js summary",
+    "summary:10": "node src/cli.js summary 10",
+    "summary:20": "node src/cli.js summary 20",
+    "summary:50": "node src/cli.js summary 50",
+    "rising": "node src/cli.js rising",
+    "falling": "node src/cli.js falling",
+    "test": "node src/cli.js test",
+    "help": "node src/cli.js help",
+    "filter:marketcap": "node scripts/filter-by-market-cap-compact.js"
   },
-  "keywords": [],
+  "keywords": [
+    "crypto",
+    "screener",
+    "telegram",
+    "coingecko",
+    "clean-architecture",
+    "ddd",
+    "nodejs"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "axios": "^1.10.0",
     "ccxt": "^4.4.94",
+    "coingecko-api-v3": "^0.0.31",
     "dotenv": "^17.2.0",
     "node-telegram-bot-api": "^0.66.0"
-  }
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/crypto-screener.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/crypto-screener/issues"
+  },
+  "homepage": "https://github.com/your-username/crypto-screener#readme"
 }
