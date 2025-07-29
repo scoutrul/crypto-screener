@@ -20,6 +20,7 @@
     "monitor:anomalies": "node scripts/anomaly-monitor.js",
     "monitor:signals": "node scripts/trade-signals-only.js",
     "monitor:virtual": "node scripts/virtual-trading-system.js",
+    "test:multi-stream": "node scripts/test-multi-stream.js",
     "stats:view": "node scripts/view-statistics.js",
     "stats:extended": "node scripts/view-extended-statistics.js",
     "status:view": "node scripts/view-system-status.js",

@@ -39,8 +39,11 @@ class VirtualTradingSystem {
     this.tradeHistory = []; // история всех сделок
     this.tradingStatistics = null; // статистика торговли
     this.app = null;
-    this.monitoringInterval = null;
-    this.priceTrackingInterval = null;
+    
+    // Интервалы для разных потоков (WebSocket-готовые)
+    this.anomalyCheckInterval = null;      // Поток 1: 5 минут
+    this.pendingCheckInterval = null;      // Поток 2: 1 минута  
+    this.activeTradesInterval = null;      // Поток 3: 30 секунд
   }
 
   /**
@@ -416,9 +419,13 @@ class VirtualTradingSystem {
         const timeSinceAnomaly = Date.now() - anomalyTime.getTime();
         const minutesSinceAnomaly = Math.floor(timeSinceAnomaly / (15 * 60 * 1000));
         
-        // Проверить, не слишком ли старая аномалия (больше 24 часов)
-        if (minutesSinceAnomaly > 96) { // 24 часа = 24 * 4 TF = 96 TF (15-минутных)
-          console.log(`⏰ Аномалия ${symbol} слишком старая (${minutesSinceAnomaly} TF = ${Math.floor(minutesSinceAnomaly / 4)} часов), удаляем из pending`);
+        // Проверить таймаут watchlist (4 TF = 1 час)
+        const watchlistTime = new Date(anomaly.watchlistTime || anomaly.anomalyTime);
+        const timeInWatchlist = Date.now() - watchlistTime.getTime();
+        const minutesInWatchlist = Math.floor(timeInWatchlist / (15 * 60 * 1000));
+        
+        if (minutesInWatchlist >= 4) { // 4 TF = 1 час
+          console.log(`⏰ ${symbol} в watchlist слишком долго (${minutesInWatchlist} TF = ${Math.floor(minutesInWatchlist / 4)} часов), удаляем из watchlist`);
           symbolsToRemove.push(symbol);
           continue;
         }
@@ -517,8 +524,9 @@ class VirtualTradingSystem {
           // Отправить уведомление
           await this.sendNewTradeNotification(trade);
           
-          // Удалить из pending
+          // Удалить из watchlist (переместить в trade list)
           symbolsToRemove.push(symbol);
+          console.log(`✅ ${symbol} перемещен из watchlist в trade list`);
         } else {
           console.log(`❌ Подтверждение не получено для ${symbol} (изменение: ${(priceDiff * 100).toFixed(2)}%)`);
           
@@ -638,9 +646,10 @@ class VirtualTradingSystem {
     // Добавить в историю
     this.tradeHistory.push(trade);
     
-    // Удалить из активных сделок
+    // Удалить из активных сделок и watchlist
     this.activeTrades.delete(trade.symbol);
     this.watchlist.delete(trade.symbol);
+    console.log(`🗑️ ${trade.symbol} удален из trade list и watchlist`);
 
     // Сохранить историю и статистику
     await this.saveTradeHistory();
@@ -932,6 +941,7 @@ class VirtualTradingSystem {
         anomalyId,
         tradeType: tradeType,
         anomalyTime: anomalyTime.toISOString(),
+        watchlistTime: new Date().toISOString(), // Время добавления в watchlist
         anomalyCandleIndex: candles.length - 2,
         anomalyPrice: anomalyPrice,
         historicalPrice: avgHistoricalPrice
@@ -1125,22 +1135,54 @@ class VirtualTradingSystem {
   }
 
   /**
-   * Запустить мониторинг
+   * Поток 1: Поиск аномалий среди всех монет (5 минут)
+   * WebSocket-готовый метод
    */
-  async runMonitoring() {
-    console.log('🔍 Начинаем проверку аномалий...');
+  async runAnomalyCheck() {
+    console.log('🔍 [ПОТОК 1] Поиск аномалий среди всех монет...');
     
     for (const coin of this.filteredCoins) {
       await this.checkAnomalies(coin);
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    console.log('✅ Проверка аномалий завершена');
+    console.log('✅ [ПОТОК 1] Поиск аномалий завершен');
+  }
+
+  /**
+   * Поток 2: Мониторинг watchlist (30 секунд)
+   * WebSocket-готовый метод
+   */
+  async runPendingCheck() {
+    if (this.pendingAnomalies.size === 0) {
+      return; // Нет монет в watchlist
+    }
     
-    // Проверить pending anomalies
-    console.log('🔍 Проверяем pending anomalies...');
+    console.log(`⏳ [ПОТОК 2] Мониторинг ${this.pendingAnomalies.size} монет в watchlist...`);
     await this.checkPendingAnomalies();
-    console.log('✅ Проверка pending anomalies завершена');
+    console.log('✅ [ПОТОК 2] Мониторинг watchlist завершен');
+  }
+
+  /**
+   * Поток 3: Мониторинг trade list (30 секунд)
+   * WebSocket-готовый метод
+   */
+  async runActiveTradesCheck() {
+    if (this.activeTrades.size === 0) {
+      return; // Нет активных сделок для отслеживания
+    }
+    
+    console.log(`📊 [ПОТОК 3] Мониторинг ${this.activeTrades.size} сделок в trade list...`);
+    await this.trackActiveTrades();
+    console.log('✅ [ПОТОК 3] Мониторинг trade list завершен');
+  }
+
+  /**
+   * Запустить мониторинг (устаревший метод - для совместимости)
+   */
+  async runMonitoring() {
+    await this.runAnomalyCheck();
+    await this.runPendingCheck();
   }
 
   /**
@@ -1165,20 +1207,28 @@ class VirtualTradingSystem {
       await this.loadPendingAnomalies();
       await this.loadActiveTrades();
 
-      // Запустить первый цикл мониторинга
-      await this.runMonitoring();
+      // Запустить первый цикл всех потоков
+      await this.runAnomalyCheck();
+      await this.runPendingCheck();
+      await this.runActiveTradesCheck();
 
-      // Установить интервалы
-      this.monitoringInterval = setInterval(async () => {
-        await this.runMonitoring();
-      }, CONFIG.monitoringInterval);
+      // Установить интервалы для 3 потоков
+      this.anomalyCheckInterval = setInterval(async () => {
+        await this.runAnomalyCheck();
+      }, 5 * 60 * 1000); // 5 минут
 
-      this.priceTrackingInterval = setInterval(async () => {
-        await this.trackActiveTrades();
-      }, CONFIG.priceTrackingInterval);
+      this.pendingCheckInterval = setInterval(async () => {
+        await this.runPendingCheck();
+      }, 30 * 1000); // 30 секунд
 
-      console.log(`⏰ Мониторинг запущен с интервалом ${CONFIG.monitoringInterval / 1000 / 60} минут`);
-      console.log(`📊 Отслеживание цен каждые ${CONFIG.priceTrackingInterval / 1000 / 60} минут`);
+      this.activeTradesInterval = setInterval(async () => {
+        await this.runActiveTradesCheck();
+      }, 30 * 1000); // 30 секунд
+
+      console.log('⏰ Многоуровневая система мониторинга запущена:');
+      console.log('   🔍 Поток 1 (аномалии): каждые 5 минут');
+      console.log('   ⏳ Поток 2 (watchlist): каждые 30 секунд');
+      console.log('   📊 Поток 3 (активные сделки): каждые 30 секунд');
 
       // Показывать статистику каждые 30 минут
       setInterval(() => {
@@ -1195,14 +1245,20 @@ class VirtualTradingSystem {
    * Остановить систему
    */
   async stop() {
-    if (this.monitoringInterval) {
-      clearInterval(this.monitoringInterval);
-      this.monitoringInterval = null;
+    // Остановить все потоки
+    if (this.anomalyCheckInterval) {
+      clearInterval(this.anomalyCheckInterval);
+      this.anomalyCheckInterval = null;
     }
     
-    if (this.priceTrackingInterval) {
-      clearInterval(this.priceTrackingInterval);
-      this.priceTrackingInterval = null;
+    if (this.pendingCheckInterval) {
+      clearInterval(this.pendingCheckInterval);
+      this.pendingCheckInterval = null;
+    }
+    
+    if (this.activeTradesInterval) {
+      clearInterval(this.activeTradesInterval);
+      this.activeTradesInterval = null;
     }
     
     // Сохранить данные перед остановкой
