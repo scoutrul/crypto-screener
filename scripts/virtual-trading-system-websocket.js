@@ -10,6 +10,11 @@ const { VirtualTradingBaseService } = require('../src/domain/services/VirtualTra
 
 // Конфигурация для WebSocket системы (наследуется из базового класса)
 const CONFIG = {
+  // Интервалы потоков
+  activeTradesInterval: 30 * 1000,      // 30 секунд - Trade List (высший приоритет)
+  pendingCheckInterval: 30 * 1000,      // 30 секунд - Watchlist (средний приоритет)
+  anomalyCheckInterval: 5 * 60 * 1000,  // 5 минут - Anomalies (низший приоритет)
+  
   // WebSocket специфичные настройки
   useWebSocket: true, // Использовать WebSocket для быстрых потоков
   websocketIntervals: {

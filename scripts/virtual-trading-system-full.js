@@ -11,6 +11,11 @@ const { VirtualTradingBaseService } = require('../src/domain/services/VirtualTra
 
 // Конфигурация для Full WebSocket системы (наследуется из базового класса)
 const CONFIG = {
+  // Интервалы потоков
+  activeTradesInterval: 30 * 1000,      // 30 секунд - Trade List (высший приоритет)
+  pendingCheckInterval: 30 * 1000,      // 30 секунд - Watchlist (средний приоритет)
+  anomalyCheckInterval: 5 * 60 * 1000,  // 5 минут - Anomalies (низший приоритет)
+  
   // Дополнительные параметры для Full WebSocket системы
   monitoringInterval: 5 * 60 * 1000, // 5 минут
   priceTrackingInterval: 5 * 60 * 1000, // 5 минут для отслеживания цены
@@ -960,10 +965,10 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
     // Запустить медленный поток (поиск аномалий) через REST API
     this.anomalyCheckInterval = setInterval(async () => {
       await this.runAnomalyCheck();
-    }, 5 * 60 * 1000); // 5 минут
+    }, this.config.anomalyCheckInterval); // Anomalies - низший приоритет
     
     console.log('✅ Система запущена');
-    console.log('   🔍 Поток 1 (аномалии): каждые 5 минут (REST API)');
+    console.log(`   🔍 Поток 1 (аномалии): каждые ${this.config.anomalyCheckInterval / 1000 / 60} минут (REST API)`);
     console.log('   ⏳ Поток 2 (watchlist): WebSocket в реальном времени');
     console.log('   📊 Поток 3 (trade list): WebSocket в реальном времени');
   }

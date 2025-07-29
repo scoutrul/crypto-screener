@@ -9,6 +9,11 @@ const { VirtualTradingBaseService } = require('../src/domain/services/VirtualTra
 
 // Конфигурация для REST API системы (наследуется из базового класса)
 const CONFIG = {
+  // Интервалы потоков
+  activeTradesInterval: 30 * 1000,      // 30 секунд - Trade List (высший приоритет)
+  pendingCheckInterval: 30 * 1000,      // 30 секунд - Watchlist (средний приоритет)
+  anomalyCheckInterval: 5 * 60 * 1000,  // 5 минут - Anomalies (низший приоритет)
+  
   // Дополнительные параметры для REST API системы
   monitoringInterval: 5 * 60 * 1000, // 5 минут
   priceTrackingInterval: 5 * 60 * 1000, // 5 минут для отслеживания цены
@@ -704,42 +709,11 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
   }
 
   /**
-   * Показать статистику
+   * Показать статистику торговли с дополнительной информацией о приоритетной очереди
    */
   showStatistics() {
-    if (!this.tradingStatistics) {
-      console.log('\n📊 Статистика не загружена');
-      return;
-    }
-
-    const stats = this.tradingStatistics;
-    
-    console.log('\n📊 РАСШИРЕННАЯ СТАТИСТИКА ТОРГОВЛИ:');
-    console.log(`📈 Всего сделок: ${stats.totalTrades}`);
-    console.log(`🟢 Прибыльных: ${stats.winningTrades}`);
-    console.log(`🔴 Убыточных: ${stats.losingTrades}`);
-    console.log(`📊 Винрейт: ${stats.winRate}%`);
-    console.log(`💰 Общая прибыль: ${stats.totalProfit.toFixed(2)}%`);
-    console.log(`📊 Средняя прибыль: ${stats.averageProfit}%`);
-    
-    if (stats.bestTrade) {
-      console.log(`🏆 Лучшая сделка: ${stats.bestTrade.symbol} ${stats.bestTrade.type} +${stats.bestTrade.profitLoss.toFixed(2)}%`);
-    }
-    if (stats.worstTrade) {
-      console.log(`💀 Худшая сделка: ${stats.worstTrade.symbol} ${stats.worstTrade.type} ${stats.worstTrade.profitLoss.toFixed(2)}%`);
-    }
-    if (stats.longestTrade) {
-      console.log(`⏱️ Самая длинная: ${stats.longestTrade.symbol} ${Math.round(stats.longestTrade.duration / 1000 / 60)} минут`);
-    }
-    if (stats.shortestTrade) {
-      console.log(`⚡ Самая короткая: ${stats.shortestTrade.symbol} ${Math.round(stats.shortestTrade.duration / 1000 / 60)} минут`);
-    }
-    
-    console.log(`📅 Дней работы: ${stats.totalDaysRunning}`);
-    console.log(`📊 Сделок в день: ${stats.averageTradesPerDay}`);
-    console.log(`👀 Активных сделок: ${this.activeTrades.size}`);
-    console.log(`📋 В watchlist: ${this.watchlist.size}`);
-    console.log(`🕐 Последнее обновление: ${new Date(stats.lastUpdated).toLocaleString()}`);
+    // Вызвать базовый метод
+    super.showStatistics();
     
     // Добавить статистику приоритетной очереди
     console.log('\n🎯 СТАТИСТИКА ПРИОРИТЕТНОЙ ОЧЕРЕДИ:');
@@ -1123,20 +1097,20 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       // Установить интервалы для 3 потоков с приоритетной очередью
       this.activeTradesInterval = setInterval(async () => {
         await this.runActiveTradesCheck();
-      }, 30 * 1000); // 30 секунд - высший приоритет
+      }, this.config.activeTradesInterval); // Trade List - высший приоритет
 
       this.pendingCheckInterval = setInterval(async () => {
         await this.runPendingCheck();
-      }, 30 * 1000); // 30 секунд - средний приоритет
+      }, this.config.pendingCheckInterval); // Watchlist - средний приоритет
 
       this.anomalyCheckInterval = setInterval(async () => {
         await this.runAnomalyCheck();
-      }, 5 * 60 * 1000); // 5 минут - низший приоритет
+      }, this.config.anomalyCheckInterval); // Anomalies - низший приоритет
 
       console.log('⏰ Приоритетная система мониторинга запущена:');
-      console.log('   🥇 Поток 3 (активные сделки): каждые 30 сек - ПРИОРИТЕТ 1');
-      console.log('   🥈 Поток 2 (watchlist): каждые 30 сек - ПРИОРИТЕТ 2');
-      console.log('   🥉 Поток 1 (аномалии): каждые 5 мин - ПРИОРИТЕТ 3');
+      console.log(`   🥇 Поток 3 (активные сделки): каждые ${this.config.activeTradesInterval / 1000} сек - ПРИОРИТЕТ 1`);
+      console.log(`   🥈 Поток 2 (watchlist): каждые ${this.config.pendingCheckInterval / 1000} сек - ПРИОРИТЕТ 2`);
+      console.log(`   🥉 Поток 1 (аномалии): каждые ${this.config.anomalyCheckInterval / 1000 / 60} мин - ПРИОРИТЕТ 3`);
       console.log('   📤 Статус в Telegram: каждые 2 часа');
 
       // Отправить начальный статус через 1 минуту после запуска
