@@ -302,19 +302,38 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       return; // Нет монет в watchlist
     }
     
-    console.log(`⏳ [ПОТОК 2] Мониторинг ${this.pendingAnomalies.size} монет в watchlist...`);
+    console.log(`⏳ [ПОТОК 2] Мониторинг ${this.pendingAnomalies.size} монет в watchlist (многопоточный)...`);
     
-    for (const [symbol, anomaly] of this.pendingAnomalies) {
-      try {
-        // Проверить подтверждение входа
-        await this.checkEntryConfirmation(symbol, anomaly.tradeType, anomaly.anomalyCandleIndex);
-        
-        // Проверить таймаут watchlist
-        this.checkWatchlistTimeout(symbol, anomaly);
-        
-        await new Promise(resolve => setTimeout(resolve, 100)); // Небольшая задержка между запросами
-      } catch (error) {
-        console.error(`❌ Ошибка проверки ${symbol}:`, error.message);
+    const batchSize = 5; // Меньший размер батча для watchlist
+    const delayBetweenBatches = 500; // Меньшая задержка
+    
+    const anomalies = Array.from(this.pendingAnomalies.entries());
+    
+    // Разбить на батчи
+    for (let i = 0; i < anomalies.length; i += batchSize) {
+      const batch = anomalies.slice(i, i + batchSize);
+      
+      console.log(`📦 Обработка watchlist батча ${Math.floor(i / batchSize) + 1}/${Math.ceil(anomalies.length / batchSize)} (${batch.length} монет)`);
+      
+      // Запустить все запросы в батче параллельно
+      const promises = batch.map(async ([symbol, anomaly]) => {
+        try {
+          // Проверить подтверждение входа
+          await this.checkEntryConfirmation(symbol, anomaly.tradeType, anomaly.anomalyCandleIndex);
+          
+          // Проверить таймаут watchlist
+          this.checkWatchlistTimeout(symbol, anomaly);
+        } catch (error) {
+          console.error(`❌ Ошибка проверки ${symbol}:`, error.message);
+        }
+      });
+      
+      // Ждать завершения всех запросов в батче
+      await Promise.all(promises);
+      
+      // Задержка между батчами
+      if (i + batchSize < anomalies.length) {
+        await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
       }
     }
     
@@ -345,32 +364,51 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       return; // Нет активных сделок для отслеживания
     }
     
-    console.log(`📊 [ПОТОК 3] Мониторинг ${this.activeTrades.size} сделок в trade list...`);
+    console.log(`📊 [ПОТОК 3] Мониторинг ${this.activeTrades.size} сделок в trade list (многопоточный)...`);
     
-    for (const [symbol, trade] of this.activeTrades) {
-      try {
-        const since = Date.now() - (2 * 15 * 60 * 1000); // Последние 2 свечи
-        const candles = await this.fetchCandles(symbol, since, 2, 3);
-        
-        if (candles.length === 0) {
-          console.log(`⚠️ Не удалось получить данные для ${symbol}`);
-          continue;
+    const batchSize = 3; // Меньший размер батча для активных сделок
+    const delayBetweenBatches = 300; // Меньшая задержка
+    
+    const trades = Array.from(this.activeTrades.entries());
+    
+    // Разбить на батчи
+    for (let i = 0; i < trades.length; i += batchSize) {
+      const batch = trades.slice(i, i + batchSize);
+      
+      console.log(`📦 Обработка trade list батча ${Math.floor(i / batchSize) + 1}/${Math.ceil(trades.length / batchSize)} (${batch.length} сделок)`);
+      
+      // Запустить все запросы в батче параллельно
+      const promises = batch.map(async ([symbol, trade]) => {
+        try {
+          const since = Date.now() - (2 * 15 * 60 * 1000); // Последние 2 свечи
+          const candles = await this.fetchCandles(symbol, since, 2, 3);
+          
+          if (candles.length === 0) {
+            console.log(`⚠️ Не удалось получить данные для ${symbol}`);
+            return;
+          }
+          
+          const currentPrice = this.calculateAveragePrice(candles);
+          const currentVolume = candles[candles.length - 1][5]; // Объем текущей свечи
+          
+          // Обновить последнюю цену, время и объем
+          trade.lastPrice = currentPrice;
+          trade.lastUpdateTime = new Date().toISOString();
+          trade.currentVolume = currentVolume; // Обновляем текущий объем
+          
+          // Проверить условия закрытия
+          this.checkTradeExitConditions(trade, currentPrice);
+        } catch (error) {
+          console.error(`❌ Ошибка отслеживания ${symbol}:`, error.message);
         }
-        
-        const currentPrice = this.calculateAveragePrice(candles);
-        const currentVolume = candles[candles.length - 1][5]; // Объем текущей свечи
-        
-        // Обновить последнюю цену, время и объем
-        trade.lastPrice = currentPrice;
-        trade.lastUpdateTime = new Date().toISOString();
-        trade.currentVolume = currentVolume; // Обновляем текущий объем
-        
-        // Проверить условия закрытия
-        this.checkTradeExitConditions(trade, currentPrice);
-        
-        await new Promise(resolve => setTimeout(resolve, 100)); // Небольшая задержка
-      } catch (error) {
-        console.error(`❌ Ошибка отслеживания ${symbol}:`, error.message);
+      });
+      
+      // Ждать завершения всех запросов в батче
+      await Promise.all(promises);
+      
+      // Задержка между батчами
+      if (i + batchSize < trades.length) {
+        await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
       }
     }
     
@@ -944,13 +982,36 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
 
   /**
    * Поток 1: Поиск аномалий среди всех монет (5 минут) - REST API
+   * Многопоточная обработка с ограниченным количеством одновременных запросов
    */
   async runAnomalyCheck() {
-    console.log('🔍 [ПОТОК 1] Поиск аномалий среди всех монет...');
+    console.log('🔍 [ПОТОК 1] Поиск аномалий среди всех монет (многопоточный)...');
     
-    for (const coin of this.filteredCoins) {
-      await this.checkAnomalies(coin);
-      await new Promise(resolve => setTimeout(resolve, 100));
+    const batchSize = 10; // Количество одновременных запросов
+    const delayBetweenBatches = 1000; // Задержка между батчами (1 секунда)
+    
+    // Разбить монеты на батчи
+    for (let i = 0; i < this.filteredCoins.length; i += batchSize) {
+      const batch = this.filteredCoins.slice(i, i + batchSize);
+      
+      console.log(`📦 Обработка батча ${Math.floor(i / batchSize) + 1}/${Math.ceil(this.filteredCoins.length / batchSize)} (${batch.length} монет)`);
+      
+      // Запустить все запросы в батче параллельно
+      const promises = batch.map(async (coin) => {
+        try {
+          await this.checkAnomalies(coin);
+        } catch (error) {
+          console.log(`⚠️ Ошибка обработки ${coin.symbol}:`, error.message);
+        }
+      });
+      
+      // Ждать завершения всех запросов в батче
+      await Promise.all(promises);
+      
+      // Задержка между батчами для избежания rate limiting
+      if (i + batchSize < this.filteredCoins.length) {
+        await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+      }
     }
     
     console.log('✅ [ПОТОК 1] Поиск аномалий завершен');

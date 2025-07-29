@@ -1,80 +1,5 @@
 [
   {
-    "symbol": "BONK/USDT",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-29T19:15:00.000Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 0.00003003,
-    "historicalPrice": 0.00003020166666666667,
-    "anomalyId": "BONK_1753817642194",
-    "watchlistTime": "2025-07-29T19:34:02.194Z",
-    "currentVolume": 76112358258,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
-  },
-  {
-    "symbol": "FET/USDT",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-29T19:15:00.000Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 0.7064999999999999,
-    "historicalPrice": 0.7105833333333332,
-    "anomalyId": "FET_1753817647554",
-    "watchlistTime": "2025-07-29T19:34:07.554Z",
-    "currentVolume": 630350.5,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
-  },
-  {
-    "symbol": "TIA/USDT",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-29T19:15:00.000Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 1.853,
-    "historicalPrice": 1.8750833333333332,
-    "anomalyId": "TIA_1753817650404",
-    "watchlistTime": "2025-07-29T19:34:10.404Z",
-    "currentVolume": 290873.8,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
-  },
-  {
-    "symbol": "INJ/USDT",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-29T19:15:00.000Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 14.04,
-    "historicalPrice": 14.129999999999997,
-    "anomalyId": "INJ_1753817651044",
-    "watchlistTime": "2025-07-29T19:34:11.044Z",
-    "currentVolume": 28790.84,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
-  },
-  {
-    "symbol": "IMX/USDT",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-29T19:15:00.000Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 0.5575000000000001,
-    "historicalPrice": 0.5619999999999999,
-    "anomalyId": "IMX_1753817656323",
-    "watchlistTime": "2025-07-29T19:34:16.323Z",
-    "currentVolume": 159302.68,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
-  },
-  {
     "symbol": "CAKE/USDT",
     "tradeType": "Long",
     "anomalyTime": "2025-07-29T19:15:00.000Z",
@@ -84,10 +9,10 @@
     "anomalyId": "CAKE_1753817659677",
     "watchlistTime": "2025-07-29T19:34:19.677Z",
     "currentVolume": 130397.17,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
+    "entryLevel": 2.822445,
+    "cancelLevel": 2.7665550000000003,
+    "isConsolidated": true,
+    "closePrice": 2.7945
   },
   {
     "symbol": "XTZ/USDT",
@@ -99,40 +24,10 @@
     "anomalyId": "XTZ_1753817664021",
     "watchlistTime": "2025-07-29T19:34:24.021Z",
     "currentVolume": 94598.3,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
-  },
-  {
-    "symbol": "JASMY/USDT",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-29T19:15:00.000Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 0.016125,
-    "historicalPrice": 0.016254166666666667,
-    "anomalyId": "JASMY_1753817667565",
-    "watchlistTime": "2025-07-29T19:34:27.565Z",
-    "currentVolume": 9154751.8,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
-  },
-  {
-    "symbol": "GALA/USDT",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-29T19:15:00.000Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 0.016685,
-    "historicalPrice": 0.016772499999999996,
-    "anomalyId": "GALA_1753817668441",
-    "watchlistTime": "2025-07-29T19:34:28.441Z",
-    "currentVolume": 20196459,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
+    "entryLevel": 0.8438549999999999,
+    "cancelLevel": 0.8271449999999999,
+    "isConsolidated": true,
+    "closePrice": 0.8354999999999999
   },
   {
     "symbol": "JTO/USDT",
@@ -144,10 +39,10 @@
     "anomalyId": "JTO_1753817671618",
     "watchlistTime": "2025-07-29T19:34:31.618Z",
     "currentVolume": 90370.2,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
+    "entryLevel": 1.9114250000000002,
+    "cancelLevel": 1.873575,
+    "isConsolidated": true,
+    "closePrice": 1.8925
   },
   {
     "symbol": "FLOW/USDT",
@@ -159,25 +54,10 @@
     "anomalyId": "FLOW_1753817672479",
     "watchlistTime": "2025-07-29T19:34:32.479Z",
     "currentVolume": 269497.28,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
-  },
-  {
-    "symbol": "AR/USDT",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-29T19:15:00.000Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 7.49,
-    "historicalPrice": 7.540833333333334,
-    "anomalyId": "AR_1753817676153",
-    "watchlistTime": "2025-07-29T19:34:36.153Z",
-    "currentVolume": 34501,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
+    "entryLevel": 0.39087,
+    "cancelLevel": 0.38313,
+    "isConsolidated": true,
+    "closePrice": 0.387
   },
   {
     "symbol": "RSR/USDT",
@@ -189,10 +69,10 @@
     "anomalyId": "RSR_1753817677619",
     "watchlistTime": "2025-07-29T19:34:37.619Z",
     "currentVolume": 11493083.1,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
+    "entryLevel": 0.008348659999999999,
+    "cancelLevel": 0.008183339999999999,
+    "isConsolidated": true,
+    "closePrice": 0.008265999999999999
   },
   {
     "symbol": "NEO/USDT",
@@ -204,10 +84,10 @@
     "anomalyId": "NEO_1753817680924",
     "watchlistTime": "2025-07-29T19:34:40.924Z",
     "currentVolume": 26723.16,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
+    "entryLevel": 6.4135,
+    "cancelLevel": 6.286499999999999,
+    "isConsolidated": true,
+    "closePrice": 6.35
   },
   {
     "symbol": "CHZ/USDT",
@@ -219,9 +99,9 @@
     "anomalyId": "CHZ_1753817686784",
     "watchlistTime": "2025-07-29T19:34:46.784Z",
     "currentVolume": 1999524,
-    "entryLevel": null,
-    "cancelLevel": null,
-    "isConsolidated": false,
-    "closePrice": null
+    "entryLevel": 0.04087975,
+    "cancelLevel": 0.040070249999999995,
+    "isConsolidated": true,
+    "closePrice": 0.040475
   }
 ]
