@@ -10,9 +10,9 @@
     "entryTime": "2025-07-29T16:51:51.266Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 40.375,
-    "lastUpdateTime": "2025-07-29T18:43:13.854Z",
-    "currentVolume": 587.689
+    "lastPrice": 40.155,
+    "lastUpdateTime": "2025-07-29T19:44:44.171Z",
+    "currentVolume": 63.055
   },
   {
     "id": "S/USDT_1753808661803",
@@ -25,24 +25,9 @@
     "entryTime": "2025-07-29T17:04:21.803Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 0.30645,
-    "lastUpdateTime": "2025-07-29T18:43:14.172Z",
-    "currentVolume": 335806.8
-  },
-  {
-    "id": "THETA/USDT_1753809236312",
-    "anomalyId": "THETA_1753809236312",
-    "symbol": "THETA/USDT",
-    "type": "Long",
-    "entryPrice": 0.8534999999999999,
-    "stopLoss": 0.844965,
-    "takeProfit": 0.8791049999999999,
-    "entryTime": "2025-07-29T17:13:56.312Z",
-    "status": "open",
-    "virtualAmount": 1000,
-    "lastPrice": 0.852,
-    "lastUpdateTime": "2025-07-29T18:43:14.514Z",
-    "currentVolume": 14361.7
+    "lastPrice": 0.3044,
+    "lastUpdateTime": "2025-07-29T19:44:44.631Z",
+    "currentVolume": 321236.3
   },
   {
     "id": "LDO/USDT_1753811129916",
@@ -55,9 +40,9 @@
     "entryTime": "2025-07-29T17:45:29.916Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 1.0379999999999998,
-    "lastUpdateTime": "2025-07-29T18:43:15.283Z",
-    "currentVolume": 281090.14
+    "lastPrice": 1.033,
+    "lastUpdateTime": "2025-07-29T19:44:44.955Z",
+    "currentVolume": 110406.85
   },
   {
     "id": "EIGEN/USDT_1753811143449",
@@ -70,8 +55,8 @@
     "entryTime": "2025-07-29T17:45:43.449Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 1.3165,
-    "lastUpdateTime": "2025-07-29T18:43:15.777Z",
-    "currentVolume": 221643.75
+    "lastPrice": 1.303,
+    "lastUpdateTime": "2025-07-29T19:44:45.308Z",
+    "currentVolume": 75462.44
   }
 ]

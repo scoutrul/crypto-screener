@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2025-07-29T15:07:47.550Z",
-  "totalTrades": 1,
+  "lastUpdated": "2025-07-29T19:30:15.535Z",
+  "totalTrades": 2,
   "winningTrades": 1,
-  "losingTrades": 0,
-  "winRate": 100,
-  "totalProfit": 6.794467362290711,
-  "averageProfit": 6.79,
+  "losingTrades": 1,
+  "winRate": 50,
+  "totalProfit": 5.564238891288959,
+  "averageProfit": 2.78,
   "bestTrade": {
     "symbol": "CRV/USDT",
     "type": "Short",
@@ -13,10 +13,10 @@
     "entryTime": "2025-07-29T08:30:21.788Z"
   },
   "worstTrade": {
-    "symbol": "CRV/USDT",
-    "type": "Short",
-    "profitLoss": 6.794467362290711,
-    "entryTime": "2025-07-29T08:30:21.788Z"
+    "symbol": "THETA/USDT",
+    "type": "Long",
+    "profitLoss": -1.2302284710017521,
+    "entryTime": "2025-07-29T17:13:56.312Z"
   },
   "longestTrade": {
     "symbol": "CRV/USDT",
@@ -25,10 +25,10 @@
     "entryTime": "2025-07-29T08:30:21.788Z"
   },
   "shortestTrade": {
-    "symbol": "CRV/USDT",
-    "type": "Short",
-    "duration": 23845760,
-    "entryTime": "2025-07-29T08:30:21.788Z"
+    "symbol": "THETA/USDT",
+    "type": "Long",
+    "duration": 8179056,
+    "entryTime": "2025-07-29T17:13:56.312Z"
   },
   "monthlyStats": {},
   "dailyStats": {},
@@ -44,9 +44,21 @@
       "exitTime": "2025-07-29T15:07:47.548Z",
       "closeReason": "take_profit",
       "duration": 23845760
+    },
+    {
+      "id": "THETA/USDT_1753809236312",
+      "symbol": "THETA/USDT",
+      "type": "Long",
+      "entryPrice": 0.8534999999999999,
+      "exitPrice": 0.843,
+      "profitLoss": -1.2302284710017521,
+      "entryTime": "2025-07-29T17:13:56.312Z",
+      "exitTime": "2025-07-29T19:30:15.368Z",
+      "closeReason": "stop_loss",
+      "duration": 8179056
     }
   ],
   "systemStartTime": "2025-07-29T11:30:00.000Z",
   "totalDaysRunning": 1,
-  "averageTradesPerDay": 1
+  "averageTradesPerDay": 2
 }

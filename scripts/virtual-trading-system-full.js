@@ -1,29 +1,20 @@
 /**
  * Полноценная система виртуальной торговли с WebSocket поддержкой
+ * Наследует общую бизнес-логику из VirtualTradingBaseService
  * Объединяет весь функционал старой системы с WebSocket интеграцией
  */
 
 const ccxt = require('ccxt');
-const fs = require('fs').promises;
-const path = require('path');
 const { CryptoScreenerApp } = require('../src/app');
 const { BinanceWebSocketProvider } = require('../src/infrastructure/adapters/BinanceWebSocketProvider.js');
+const { VirtualTradingBaseService } = require('../src/domain/services/VirtualTradingBaseService');
 
-// Конфигурация (из старой системы)
+// Конфигурация для Full WebSocket системы (наследуется из базового класса)
 const CONFIG = {
-  timeframe: '15m',
-  volumeThreshold: 3, // Объем в 3 раз больше среднего
-  priceThreshold: 0.005, // 0.5% для определения направления
+  // Дополнительные параметры для Full WebSocket системы
   monitoringInterval: 5 * 60 * 1000, // 5 минут
   priceTrackingInterval: 5 * 60 * 1000, // 5 минут для отслеживания цены
-  historicalWindow: 8, // 8 свечей (2 часа)
   exchanges: ['Binance'],
-  virtualDeposit: 1000, // $1000 на сделку
-  stopLossPercent: 0.01, // 1%
-  takeProfitPercent: 0.03, // 3%
-  breakEvenPercent: 0.20, // 20% для безубытка
-  anomalyCooldown: 4, // 4 TF (1 час) без повторных аномалий
-  entryConfirmationTFs: 2, // 2 TF для подтверждения точки входа
   
   // WebSocket настройки
   useWebSocket: true,
@@ -33,20 +24,16 @@ const CONFIG = {
   }
 };
 
-class VirtualTradingSystemFull {
+class VirtualTradingSystemFull extends VirtualTradingBaseService {
   constructor() {
-    // Данные (из старой системы)
+    // Вызвать конструктор базового класса с конфигурацией
+    super(CONFIG);
+    
+    // Full WebSocket специфичные поля
     this.exchange = new ccxt.binance({ enableRateLimit: true });
-    this.filteredCoins = [];
-    this.activeTrades = new Map(); // symbol -> trade object
-    this.watchlist = new Set(); // символы в watchlist
-    this.anomalyCooldowns = new Map(); // symbol -> timestamp
-    this.pendingAnomalies = new Map(); // symbol -> anomaly object
-    this.tradeHistory = []; // история всех сделок
-    this.tradingStatistics = null; // статистика торговли
     this.app = null;
     
-    // WebSocket провайдер (из новой системы)
+    // WebSocket провайдер
     this.wsProvider = null;
     this.wsConnected = false;
     
@@ -55,7 +42,7 @@ class VirtualTradingSystemFull {
   }
 
   /**
-   * Инициализация системы
+   * Инициализация системы (переопределение абстрактного метода)
    */
   async initialize() {
     console.log('🚀 Инициализация полноценной системы виртуальной торговли...');
@@ -64,7 +51,7 @@ class VirtualTradingSystemFull {
     this.app = new CryptoScreenerApp();
     await this.app.start();
     
-    // Загрузить данные (из старой системы)
+    // Загрузить данные (используем методы базового класса)
     const loaded = await this.loadFilteredCoins();
     if (!loaded) {
       throw new Error('Не удалось загрузить список монет');
@@ -75,6 +62,11 @@ class VirtualTradingSystemFull {
     await this.loadPendingAnomalies();
     await this.loadActiveTrades();
 
+    // Установить сервис уведомлений
+    if (this.app) {
+      this.setNotificationService(this.app.getNotificationService());
+    }
+
     // Инициализировать WebSocket провайдер (из новой системы)
     if (CONFIG.useWebSocket) {
       await this.initializeWebSocket();
@@ -84,7 +76,7 @@ class VirtualTradingSystemFull {
   }
 
   /**
-   * Инициализация WebSocket провайдера (из новой системы)
+   * Инициализация WebSocket провайдера (Full WebSocket специфика)
    */
   async initializeWebSocket() {
     console.log('🔌 Инициализация WebSocket провайдера...');
@@ -113,7 +105,7 @@ class VirtualTradingSystemFull {
   }
 
   /**
-   * Подписаться на потоки для watchlist (из новой системы)
+   * Подписаться на потоки для watchlist (Full WebSocket специфика)
    */
   subscribeToWatchlistStreams() {
     if (!this.wsConnected || this.pendingAnomalies.size === 0) {
@@ -125,7 +117,7 @@ class VirtualTradingSystemFull {
     this.pendingAnomalies.forEach((anomaly, symbol) => {
       streams.push({
         symbol: symbol.replace('/USDT', ''),
-        interval: CONFIG.websocketIntervals.watchlist,
+        interval: this.config.websocketIntervals.watchlist,
         callback: (symbol, candle) => this.handleWatchlistKline(symbol, candle)
       });
     });
@@ -137,7 +129,7 @@ class VirtualTradingSystemFull {
   }
 
   /**
-   * Подписаться на потоки для trade list (из новой системы)
+   * Подписаться на потоки для trade list (Full WebSocket специфика)
    */
   subscribeToTradeListStreams() {
     if (!this.wsConnected || this.activeTrades.size === 0) {
@@ -149,7 +141,7 @@ class VirtualTradingSystemFull {
     this.activeTrades.forEach((trade, symbol) => {
       streams.push({
         symbol: symbol.replace('/USDT', ''),
-        interval: CONFIG.websocketIntervals.tradeList,
+        interval: this.config.websocketIntervals.tradeList,
         callback: (symbol, candle) => this.handleTradeListKline(symbol, candle)
       });
     });
@@ -161,7 +153,7 @@ class VirtualTradingSystemFull {
   }
 
   /**
-   * Обработка свечи для watchlist (из новой системы)
+   * Обработка свечи для watchlist (Full WebSocket специфика)
    */
   handleWatchlistKline(symbol, candle) {
     const fullSymbol = `${symbol}/USDT`;
@@ -181,7 +173,7 @@ class VirtualTradingSystemFull {
   }
 
   /**
-   * Обработка свечи для trade list (из новой системы)
+   * Обработка свечи для trade list (Full WebSocket специфика)
    */
   handleTradeListKline(symbol, candle) {
     const fullSymbol = `${symbol}/USDT`;
@@ -214,15 +206,14 @@ class VirtualTradingSystemFull {
     const expectedDirection = tradeType === 'Long' ? 1 : -1;
     
     // Проверить направление движения (логика из старой системы)
-    if (Math.abs(priceChange) >= CONFIG.priceThreshold * 100 && 
+    if (Math.abs(priceChange) >= this.config.priceThreshold * 100 && 
         Math.sign(priceChange) === expectedDirection) {
       
       console.log(`✅ ${symbol} - Подтверждение входа! Изменение: ${priceChange.toFixed(2)}%`);
       
-      // Создать сделку (используем метод из старой системы)
+      // Создать сделку (используем метод базового класса)
       const currentVolume = currentCandle[5]; // Объем текущей свечи
       const trade = this.createVirtualTrade(symbol, tradeType, currentPrice, anomaly.anomalyId, currentVolume);
-      this.activeTrades.set(symbol, trade);
       
       // Удалить из watchlist
       this.pendingAnomalies.delete(symbol);
@@ -236,15 +227,15 @@ class VirtualTradingSystemFull {
       if (this.wsProvider && this.wsConnected) {
         this.wsProvider.subscribeToKline(
           symbol.replace('/USDT', ''),
-          CONFIG.websocketIntervals.tradeList,
+          this.config.websocketIntervals.tradeList,
           (symbol, candle) => this.handleTradeListKline(symbol, candle)
         );
       }
       
-      // Отправить уведомление (используем метод из старой системы)
+      // Отправить уведомление (используем метод базового класса)
       await this.sendNewTradeNotification(trade);
       
-      // Сохранить данные (используем методы из старой системы)
+      // Сохранить данные (используем методы базового класса)
       await this.saveActiveTrades();
       await this.savePendingAnomalies();
       
@@ -254,14 +245,14 @@ class VirtualTradingSystemFull {
   }
 
   /**
-   * Проверить таймаут watchlist (из старой системы)
+   * Проверить таймаут watchlist (Full WebSocket специфика)
    */
   checkWatchlistTimeout(symbol, anomaly) {
     const watchlistTime = new Date(anomaly.watchlistTime || anomaly.anomalyTime);
     const timeInWatchlist = Date.now() - watchlistTime.getTime();
     const minutesInWatchlist = Math.floor(timeInWatchlist / (15 * 60 * 1000));
     
-    if (minutesInWatchlist >= CONFIG.anomalyCooldown) {
+    if (minutesInWatchlist >= this.config.anomalyCooldown) {
       console.log(`⏰ ${symbol} в watchlist слишком долго (${minutesInWatchlist} TF), удаляем`);
       
       // Удалить из watchlist
@@ -317,203 +308,12 @@ class VirtualTradingSystemFull {
   }
 
   /**
-   * Загрузить отфильтрованные монеты (из старой системы)
-   */
-  async loadFilteredCoins() {
-    try {
-      let filename = path.join(__dirname, '..', 'data', 'binance-coins.json');
-      let data;
-      try {
-        data = await fs.readFile(filename, 'utf8');
-        console.log('📊 Загружен список монет, торгующихся на Binance');
-      } catch (error) {
-        filename = path.join(__dirname, '..', 'data', 'filtered-coins.json');
-        data = await fs.readFile(filename, 'utf8');
-        console.log('📊 Загружен общий список монет');
-      }
-      
-      const coinsData = JSON.parse(data);
-      this.filteredCoins = coinsData.coins;
-      console.log(`📊 Загружено ${this.filteredCoins.length} монет для мониторинга`);
-      return true;
-    } catch (error) {
-      console.error('❌ Ошибка загрузки списка монет:', error.message);
-      return false;
-    }
-  }
-
-  /**
-   * Загрузить историю сделок (из старой системы)
-   */
-  async loadTradeHistory() {
-    try {
-      const filename = path.join(__dirname, '..', 'data', 'trade-history.json');
-      const data = await fs.readFile(filename, 'utf8');
-      this.tradeHistory = JSON.parse(data);
-      console.log(`📊 Загружено ${this.tradeHistory.length} исторических сделок`);
-    } catch (error) {
-      console.log('📊 История сделок не найдена, создаем новую');
-      this.tradeHistory = [];
-    }
-  }
-
-  /**
-   * Загрузить статистику торговли (из старой системы)
-   */
-  async loadTradingStatistics() {
-    try {
-      const filename = path.join(__dirname, '..', 'data', 'trading-statistics.json');
-      const data = await fs.readFile(filename, 'utf8');
-      this.tradingStatistics = JSON.parse(data);
-      console.log(`📊 Загружена статистика торговли (${this.tradingStatistics.totalTrades} сделок)`);
-    } catch (error) {
-      console.log('📊 Статистика торговли не найдена, создаем новую');
-      this.tradingStatistics = {
-        lastUpdated: new Date().toISOString(),
-        totalTrades: 0,
-        winningTrades: 0,
-        losingTrades: 0,
-        winRate: 0,
-        totalProfit: 0,
-        averageProfit: 0,
-        bestTrade: null,
-        worstTrade: null,
-        longestTrade: null,
-        shortestTrade: null,
-        monthlyStats: {},
-        dailyStats: {},
-        tradeHistory: [],
-        systemStartTime: new Date().toISOString(),
-        totalDaysRunning: 0,
-        averageTradesPerDay: 0
-      };
-    }
-  }
-
-  /**
-   * Сохранить статистику торговли (из старой системы)
-   */
-  async saveTradingStatistics() {
-    try {
-      const dataDir = path.join(__dirname, '..', 'data');
-      await fs.mkdir(dataDir, { recursive: true });
-      const filename = path.join(dataDir, 'trading-statistics.json');
-      
-      // Обновить статистику перед сохранением
-      this.updateTradingStatistics();
-      
-      await fs.writeFile(filename, JSON.stringify(this.tradingStatistics, null, 2));
-    } catch (error) {
-      console.error('❌ Ошибка сохранения статистики торговли:', error.message);
-    }
-  }
-
-  /**
-   * Сохранить историю сделок (из старой системы)
-   */
-  async saveTradeHistory() {
-    try {
-      const dataDir = path.join(__dirname, '..', 'data');
-      await fs.mkdir(dataDir, { recursive: true });
-      const filename = path.join(dataDir, 'trade-history.json');
-      await fs.writeFile(filename, JSON.stringify(this.tradeHistory, null, 2));
-    } catch (error) {
-      console.error('❌ Ошибка сохранения истории сделок:', error.message);
-    }
-  }
-
-  /**
-   * Сохранить pending anomalies (из старой системы)
-   */
-  async savePendingAnomalies() {
-    try {
-      const dataDir = path.join(__dirname, '..', 'data');
-      await fs.mkdir(dataDir, { recursive: true });
-      const filename = path.join(dataDir, 'pending-anomalies.json');
-      const anomaliesData = Array.from(this.pendingAnomalies.entries()).map(([symbol, anomaly]) => ({
-        symbol,
-        ...anomaly
-      }));
-      await fs.writeFile(filename, JSON.stringify(anomaliesData, null, 2));
-    } catch (error) {
-      console.error('❌ Ошибка сохранения pending anomalies:', error.message);
-    }
-  }
-
-  /**
-   * Загрузить pending anomalies (из старой системы)
-   */
-  async loadPendingAnomalies() {
-    try {
-      const filename = path.join(__dirname, '..', 'data', 'pending-anomalies.json');
-      const data = await fs.readFile(filename, 'utf8');
-      const anomaliesData = JSON.parse(data);
-      this.pendingAnomalies.clear();
-      anomaliesData.forEach(anomaly => {
-        this.pendingAnomalies.set(anomaly.symbol, {
-          tradeType: anomaly.tradeType,
-          anomalyTime: anomaly.anomalyTime,
-          anomalyCandleIndex: anomaly.anomalyCandleIndex,
-          anomalyPrice: anomaly.anomalyPrice,
-          historicalPrice: anomaly.historicalPrice,
-          anomalyId: anomaly.anomalyId,
-          watchlistTime: anomaly.watchlistTime
-        });
-      });
-      console.log(`📊 Загружено ${this.pendingAnomalies.size} pending anomalies`);
-    } catch (error) {
-      console.log('📊 Pending anomalies не найдены, создаем новые');
-      this.pendingAnomalies = new Map();
-    }
-  }
-
-  /**
-   * Загрузить активные сделки (из старой системы)
-   */
-  async loadActiveTrades() {
-    try {
-      const filename = path.join(__dirname, '..', 'data', 'active-trades.json');
-      const data = await fs.readFile(filename, 'utf8');
-      const tradesData = JSON.parse(data);
-      this.activeTrades.clear();
-      tradesData.forEach(trade => {
-        this.activeTrades.set(trade.symbol, trade);
-        this.watchlist.add(trade.symbol);
-      });
-      console.log(`📊 Загружено ${this.activeTrades.size} активных сделок`);
-      
-      // Отправить уведомление о существующих сделках
-      if (this.activeTrades.size > 0) {
-        await this.sendExistingTradesNotification();
-      }
-    } catch (error) {
-      console.log('📊 Активные сделки не найдены, создаем новые');
-      this.activeTrades = new Map();
-    }
-  }
-
-  /**
-   * Сохранить активные сделки (из старой системы)
-   */
-  async saveActiveTrades() {
-    try {
-      const dataDir = path.join(__dirname, '..', 'data');
-      await fs.mkdir(dataDir, { recursive: true });
-      const filename = path.join(dataDir, 'active-trades.json');
-      const tradesData = Array.from(this.activeTrades.values());
-      await fs.writeFile(filename, JSON.stringify(tradesData, null, 2));
-    } catch (error) {
-      console.error('❌ Ошибка сохранения активных сделок:', error.message);
-    }
-  }
-
-  /**
-   * Получить свечи с Binance с повторными попытками (из старой системы)
+   * Получить свечи с Binance с повторными попытками (Full WebSocket специфика)
    */
   async fetchCandles(symbol, since, limit = 100, retries = 3) {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        return await this.exchange.fetchOHLCV(symbol, CONFIG.timeframe, since, limit);
+        return await this.exchange.fetchOHLCV(symbol, this.config.timeframe, since, limit);
       } catch (error) {
         if (error.message.includes('does not have market symbol')) {
           console.log(`⚠️ ${symbol} не торгуется на Binance, пропускаем`);
@@ -563,7 +363,7 @@ class VirtualTradingSystemFull {
    * Обнаружить аномалию объема (из старой системы)
    */
   detectVolumeAnomaly(currentVolume, historicalVolume) {
-    return currentVolume > historicalVolume * CONFIG.volumeThreshold;
+    return currentVolume > historicalVolume * this.config.volumeThreshold;
   }
 
   /**
@@ -574,7 +374,7 @@ class VirtualTradingSystemFull {
     if (!cooldownTime) return false;
     
     const now = Date.now();
-    const cooldownDuration = CONFIG.anomalyCooldown * 15 * 60 * 1000; // 4 TF * 15 минут
+    const cooldownDuration = this.config.anomalyCooldown * 15 * 60 * 1000; // 4 TF * 15 минут
     return (now - cooldownTime) < cooldownDuration;
   }
 
@@ -591,9 +391,9 @@ class VirtualTradingSystemFull {
   determineTradeType(anomalyPrice, historicalPrice) {
     const priceDiff = (anomalyPrice - historicalPrice) / historicalPrice;
     
-    if (priceDiff > CONFIG.priceThreshold) {
+    if (priceDiff > this.config.priceThreshold) {
       return 'Short';
-    } else if (priceDiff < -CONFIG.priceThreshold) {
+    } else if (priceDiff < -this.config.priceThreshold) {
       return 'Long';
     }
     
@@ -605,12 +405,12 @@ class VirtualTradingSystemFull {
    */
   createVirtualTrade(symbol, tradeType, entryPrice, anomalyId = null, currentVolume = null) {
     const stopLoss = tradeType === 'Long' 
-      ? entryPrice * (1 - CONFIG.stopLossPercent)
-      : entryPrice * (1 + CONFIG.stopLossPercent);
+      ? entryPrice * (1 - this.config.stopLossPercent)
+      : entryPrice * (1 + this.config.stopLossPercent);
     
     const takeProfit = tradeType === 'Long'
-      ? entryPrice * (1 + CONFIG.takeProfitPercent)
-      : entryPrice * (1 - CONFIG.takeProfitPercent);
+      ? entryPrice * (1 + this.config.takeProfitPercent)
+      : entryPrice * (1 - this.config.takeProfitPercent);
 
     const trade = {
       id: `${symbol}_${Date.now()}`,
@@ -622,7 +422,7 @@ class VirtualTradingSystemFull {
       takeProfit: takeProfit,
       entryTime: new Date().toISOString(),
       status: 'open',
-      virtualAmount: CONFIG.virtualDeposit,
+      virtualAmount: this.config.virtualDeposit,
       lastPrice: entryPrice,
       lastUpdateTime: new Date().toISOString(),
       currentVolume: currentVolume // Добавляем текущий объем свечи
@@ -842,44 +642,13 @@ class VirtualTradingSystemFull {
   }
 
   /**
-   * Показать статистику (из старой системы)
+   * Показать статистику (расширение базового метода)
    */
   showStatistics() {
-    if (!this.tradingStatistics) {
-      console.log('\n📊 Статистика не загружена');
-      return;
-    }
-
-    const stats = this.tradingStatistics;
+    // Вызвать базовый метод
+    super.showStatistics();
     
-    console.log('\n📊 РАСШИРЕННАЯ СТАТИСТИКА ТОРГОВЛИ:');
-    console.log(`📈 Всего сделок: ${stats.totalTrades}`);
-    console.log(`🟢 Прибыльных: ${stats.winningTrades}`);
-    console.log(`🔴 Убыточных: ${stats.losingTrades}`);
-    console.log(`📊 Винрейт: ${stats.winRate}%`);
-    console.log(`💰 Общая прибыль: ${stats.totalProfit.toFixed(2)}%`);
-    console.log(`📊 Средняя прибыль: ${stats.averageProfit}%`);
-    
-    if (stats.bestTrade) {
-      console.log(`🏆 Лучшая сделка: ${stats.bestTrade.symbol} ${stats.bestTrade.type} +${stats.bestTrade.profitLoss.toFixed(2)}%`);
-    }
-    if (stats.worstTrade) {
-      console.log(`💀 Худшая сделка: ${stats.worstTrade.symbol} ${stats.worstTrade.type} ${stats.worstTrade.profitLoss.toFixed(2)}%`);
-    }
-    if (stats.longestTrade) {
-      console.log(`⏱️ Самая длинная: ${stats.longestTrade.symbol} ${Math.round(stats.longestTrade.duration / 1000 / 60)} минут`);
-    }
-    if (stats.shortestTrade) {
-      console.log(`⚡ Самая короткая: ${stats.shortestTrade.symbol} ${Math.round(stats.shortestTrade.duration / 1000 / 60)} минут`);
-    }
-    
-    console.log(`📅 Дней работы: ${stats.totalDaysRunning}`);
-    console.log(`📊 Сделок в день: ${stats.averageTradesPerDay}`);
-    console.log(`👀 Активных сделок: ${this.activeTrades.size}`);
-    console.log(`📋 В watchlist: ${this.watchlist.size}`);
-    console.log(`🕐 Последнее обновление: ${new Date(stats.lastUpdated).toLocaleString()}`);
-    
-    // WebSocket статус
+    // Добавить WebSocket специфичную информацию
     if (this.wsProvider) {
       const wsStatus = this.wsProvider.getConnectionStatus();
       console.log(`🔌 WebSocket: ${wsStatus.isConnected ? 'Подключен' : 'Отключен'}`);
@@ -888,12 +657,12 @@ class VirtualTradingSystemFull {
   }
 
   /**
-   * Проверить аномалии для одной монеты (из старой системы)
+   * Проверить аномалии для одной монеты (переопределение абстрактного метода)
    */
   async checkAnomalies(coin) {
     const symbol = `${coin.symbol}/USDT`;
     
-    // Проверяем cooldown
+    // Проверяем cooldown (используем метод базового класса)
     if (this.isAnomalyOnCooldown(symbol)) {
       console.log(`🚫 ${symbol} на cooldown, пропускаем`);
       return;
@@ -912,11 +681,11 @@ class VirtualTradingSystemFull {
     }
 
     try {
-      const since = Date.now() - (CONFIG.historicalWindow * 15 * 60 * 1000);
-      const candles = await this.fetchCandles(symbol, since, Math.max(CONFIG.historicalWindow, 20), 3);
+      const since = Date.now() - (this.config.historicalWindow * 15 * 60 * 1000);
+      const candles = await this.fetchCandles(symbol, since, Math.max(this.config.historicalWindow, 20), 3);
       
-      if (candles.length < CONFIG.historicalWindow) {
-        console.log(`⚠️ Недостаточно данных для ${symbol} (получено ${candles.length}/${CONFIG.historicalWindow})`);
+      if (candles.length < this.config.historicalWindow) {
+        console.log(`⚠️ Недостаточно данных для ${symbol} (получено ${candles.length}/${this.config.historicalWindow})`);
         return;
       }
 
@@ -928,14 +697,14 @@ class VirtualTradingSystemFull {
       const anomalyPrice = this.calculateAveragePrice([anomalyCandle]);
       const avgHistoricalPrice = this.calculateAveragePrice(historicalCandles);
 
-      // Обнаружение аномалии объема
+      // Обнаружение аномалии объема (используем метод базового класса)
       if (!this.detectVolumeAnomaly(anomalyVolume, avgHistoricalVolume)) {
         return;
       }
 
       console.log(`🚨 Аномалия объема обнаружена для ${symbol}!`);
 
-      // Определение типа сделки
+      // Определение типа сделки (используем метод базового класса)
       const tradeType = this.determineTradeType(anomalyPrice, avgHistoricalPrice);
       
       if (!tradeType) {
@@ -968,7 +737,7 @@ class VirtualTradingSystemFull {
       if (this.wsProvider && this.wsConnected) {
         this.wsProvider.subscribeToKline(
           symbol.replace('/USDT', ''),
-          CONFIG.websocketIntervals.watchlist,
+          this.config.websocketIntervals.watchlist,
           (symbol, candle) => this.handleWatchlistKline(symbol, candle)
         );
       }
@@ -1130,7 +899,7 @@ class VirtualTradingSystemFull {
   }
 
   /**
-   * Запустить систему
+   * Запустить систему (переопределение абстрактного метода)
    */
   async start() {
     console.log('🚀 Запуск полноценной системы виртуальной торговли с WebSocket...');
@@ -1152,7 +921,7 @@ class VirtualTradingSystemFull {
   }
 
   /**
-   * Остановить систему
+   * Остановить систему (переопределение абстрактного метода)
    */
   async stop() {
     console.log('🛑 Остановка системы...');
@@ -1166,7 +935,7 @@ class VirtualTradingSystemFull {
       this.wsProvider.disconnect();
     }
     
-    // Сохранить данные перед остановкой
+    // Сохранить данные перед остановкой (используем методы базового класса)
     await this.saveTradeHistory();
     await this.savePendingAnomalies();
     await this.saveActiveTrades();

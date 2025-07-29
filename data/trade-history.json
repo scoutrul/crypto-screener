@@ -17,5 +17,25 @@
     "closeReason": "take_profit",
     "profitLoss": 6.794467362290711,
     "duration": 23845760
+  },
+  {
+    "id": "THETA/USDT_1753809236312",
+    "anomalyId": "THETA_1753809236312",
+    "symbol": "THETA/USDT",
+    "type": "Long",
+    "entryPrice": 0.8534999999999999,
+    "stopLoss": 0.844965,
+    "takeProfit": 0.8791049999999999,
+    "entryTime": "2025-07-29T17:13:56.312Z",
+    "status": "closed",
+    "virtualAmount": 1000,
+    "lastPrice": 0.843,
+    "lastUpdateTime": "2025-07-29T19:30:15.367Z",
+    "currentVolume": 273.9,
+    "exitPrice": 0.843,
+    "exitTime": "2025-07-29T19:30:15.368Z",
+    "closeReason": "stop_loss",
+    "profitLoss": -1.2302284710017521,
+    "duration": 8179056
   }
 ]

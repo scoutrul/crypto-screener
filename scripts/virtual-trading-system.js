@@ -1,280 +1,71 @@
 /**
- * Система виртуальной торговли с отслеживанием результатов
- * - Автоматическое создание виртуальных сделок на $1000
- * - Отслеживание цен каждые 5 минут
- * - Закрытие по тейку/стопу
- * - Статистика винрейта
+ * Система виртуальной торговли с REST API
+ * Наследует общую бизнес-логику из VirtualTradingBaseService
  */
 
 const ccxt = require('ccxt');
-const fs = require('fs').promises;
-const path = require('path');
 const { CryptoScreenerApp } = require('../src/app');
+const { VirtualTradingBaseService } = require('../src/domain/services/VirtualTradingBaseService');
 
-// Конфигурация
+// Конфигурация для REST API системы (наследуется из базового класса)
 const CONFIG = {
-  timeframe: '15m',
-  volumeThreshold: 3, // Объем в 3 раз больше среднего
-  priceThreshold: 0.005, // 0.5% для определения направления
+  // Дополнительные параметры для REST API системы
   monitoringInterval: 5 * 60 * 1000, // 5 минут
   priceTrackingInterval: 5 * 60 * 1000, // 5 минут для отслеживания цены
-  historicalWindow: 8, // 8 свечей (2 часа)
-  exchanges: ['Binance'],
-  virtualDeposit: 1000, // $1000 на сделку
-  stopLossPercent: 0.01, // 1%
-  takeProfitPercent: 0.03, // 3%
-  breakEvenPercent: 0.20, // 20% для безубытка
-  anomalyCooldown: 4, // 4 TF (1 час) без повторных аномалий
-  entryConfirmationTFs: 2 // 2 TF для подтверждения точки входа
+  exchanges: ['Binance']
 };
 
-class VirtualTradingSystem {
+class VirtualTradingSystem extends VirtualTradingBaseService {
   constructor() {
+    // Вызвать конструктор базового класса с конфигурацией
+    super(CONFIG);
+    
+    // REST API специфичные поля
     this.exchange = new ccxt.binance({ enableRateLimit: true });
-    this.filteredCoins = [];
-    this.activeTrades = new Map(); // symbol -> trade object
-    this.watchlist = new Set(); // символы в watchlist
-    this.anomalyCooldowns = new Map(); // symbol -> timestamp
-    this.pendingAnomalies = new Map(); // symbol -> anomaly object
-    this.tradeHistory = []; // история всех сделок
-    this.tradingStatistics = null; // статистика торговли
     this.app = null;
     
-    // Интервалы для разных потоков (WebSocket-готовые)
+    // Интервалы для разных потоков (REST API)
     this.anomalyCheckInterval = null;      // Поток 1: 5 минут
-    this.pendingCheckInterval = null;      // Поток 2: 1 минута  
+    this.pendingCheckInterval = null;      // Поток 2: 30 секунд  
     this.activeTradesInterval = null;      // Поток 3: 30 секунд
   }
 
   /**
-   * Загрузить отфильтрованные монеты
+   * Инициализация системы (переопределение абстрактного метода)
    */
-  async loadFilteredCoins() {
-    try {
-      let filename = path.join(__dirname, '..', 'data', 'binance-coins.json');
-      let data;
-      try {
-        data = await fs.readFile(filename, 'utf8');
-        console.log('📊 Загружен список монет, торгующихся на Binance');
-      } catch (error) {
-        filename = path.join(__dirname, '..', 'data', 'filtered-coins.json');
-        data = await fs.readFile(filename, 'utf8');
-        console.log('📊 Загружен общий список монет');
-      }
-      
-      const coinsData = JSON.parse(data);
-      this.filteredCoins = coinsData.coins;
-      console.log(`📊 Загружено ${this.filteredCoins.length} монет для мониторинга`);
-      return true;
-    } catch (error) {
-      console.error('❌ Ошибка загрузки списка монет:', error.message);
-      return false;
+  async initialize() {
+    console.log('🚀 Инициализация системы виртуальной торговли (REST API)...');
+    
+    // Инициализировать приложение
+    this.app = new CryptoScreenerApp();
+    await this.app.start();
+    
+    // Загрузить данные (используем методы базового класса)
+    const loaded = await this.loadFilteredCoins();
+    if (!loaded) {
+      throw new Error('Не удалось загрузить список монет');
     }
+
+    await this.loadTradeHistory();
+    await this.loadTradingStatistics();
+    await this.loadPendingAnomalies();
+    await this.loadActiveTrades();
+
+    // Установить сервис уведомлений
+    if (this.app) {
+      this.setNotificationService(this.app.getNotificationService());
+    }
+    
+    console.log('✅ Система инициализирована');
   }
 
   /**
-   * Загрузить историю сделок
-   */
-  async loadTradeHistory() {
-    try {
-      const filename = path.join(__dirname, '..', 'data', 'trade-history.json');
-      const data = await fs.readFile(filename, 'utf8');
-      this.tradeHistory = JSON.parse(data);
-      console.log(`📊 Загружено ${this.tradeHistory.length} исторических сделок`);
-    } catch (error) {
-      console.log('📊 История сделок не найдена, создаем новую');
-      this.tradeHistory = [];
-    }
-  }
-
-  /**
-   * Загрузить статистику торговли
-   */
-  async loadTradingStatistics() {
-    try {
-      const filename = path.join(__dirname, '..', 'data', 'trading-statistics.json');
-      const data = await fs.readFile(filename, 'utf8');
-      this.tradingStatistics = JSON.parse(data);
-      console.log(`📊 Загружена статистика торговли (${this.tradingStatistics.totalTrades} сделок)`);
-    } catch (error) {
-      console.log('📊 Статистика торговли не найдена, создаем новую');
-      this.tradingStatistics = {
-        lastUpdated: new Date().toISOString(),
-        totalTrades: 0,
-        winningTrades: 0,
-        losingTrades: 0,
-        winRate: 0,
-        totalProfit: 0,
-        averageProfit: 0,
-        bestTrade: null,
-        worstTrade: null,
-        longestTrade: null,
-        shortestTrade: null,
-        monthlyStats: {},
-        dailyStats: {},
-        tradeHistory: [],
-        systemStartTime: new Date().toISOString(),
-        totalDaysRunning: 0,
-        averageTradesPerDay: 0
-      };
-    }
-  }
-
-  /**
-   * Сохранить статистику торговли
-   */
-  async saveTradingStatistics() {
-    try {
-      const dataDir = path.join(__dirname, '..', 'data');
-      await fs.mkdir(dataDir, { recursive: true });
-      const filename = path.join(dataDir, 'trading-statistics.json');
-      
-      // Обновить статистику перед сохранением
-      this.updateTradingStatistics();
-      
-      await fs.writeFile(filename, JSON.stringify(this.tradingStatistics, null, 2));
-      
-      // Автоматически добавить в Git stage
-      try {
-        const { stageTradingFiles } = require('./git-stage-trading-files.js');
-        stageTradingFiles();
-      } catch (error) {
-        console.log('ℹ️ Git stage не выполнен:', error.message);
-      }
-    } catch (error) {
-      console.error('❌ Ошибка сохранения статистики торговли:', error.message);
-    }
-  }
-
-  /**
-   * Сохранить историю сделок
-   */
-  async saveTradeHistory() {
-    try {
-      const dataDir = path.join(__dirname, '..', 'data');
-      await fs.mkdir(dataDir, { recursive: true });
-      const filename = path.join(dataDir, 'trade-history.json');
-      await fs.writeFile(filename, JSON.stringify(this.tradeHistory, null, 2));
-      
-      // Автоматически добавить в Git stage
-      try {
-        const { stageTradingFiles } = require('./git-stage-trading-files.js');
-        stageTradingFiles();
-      } catch (error) {
-        console.log('ℹ️ Git stage не выполнен:', error.message);
-      }
-    } catch (error) {
-      console.error('❌ Ошибка сохранения истории сделок:', error.message);
-    }
-  }
-
-  /**
-   * Сохранить pending anomalies
-   */
-  async savePendingAnomalies() {
-    try {
-      const dataDir = path.join(__dirname, '..', 'data');
-      await fs.mkdir(dataDir, { recursive: true });
-      const filename = path.join(dataDir, 'pending-anomalies.json');
-      const anomaliesData = Array.from(this.pendingAnomalies.entries()).map(([symbol, anomaly]) => ({
-        symbol,
-        ...anomaly
-      }));
-      await fs.writeFile(filename, JSON.stringify(anomaliesData, null, 2));
-      
-      // Автоматически добавить в Git stage
-      try {
-        const { stageTradingFiles } = require('./git-stage-trading-files.js');
-        stageTradingFiles();
-      } catch (error) {
-        console.log('ℹ️ Git stage не выполнен:', error.message);
-      }
-    } catch (error) {
-      console.error('❌ Ошибка сохранения pending anomalies:', error.message);
-    }
-  }
-
-  /**
-   * Загрузить pending anomalies
-   */
-  async loadPendingAnomalies() {
-    try {
-      const filename = path.join(__dirname, '..', 'data', 'pending-anomalies.json');
-      const data = await fs.readFile(filename, 'utf8');
-      const anomaliesData = JSON.parse(data);
-      this.pendingAnomalies.clear();
-      anomaliesData.forEach(anomaly => {
-        this.pendingAnomalies.set(anomaly.symbol, {
-          tradeType: anomaly.tradeType,
-          anomalyTime: anomaly.anomalyTime,
-          anomalyCandleIndex: anomaly.anomalyCandleIndex,
-          anomalyPrice: anomaly.anomalyPrice,
-          historicalPrice: anomaly.historicalPrice,
-          currentVolume: anomaly.currentVolume || null // Добавляем поддержку currentVolume
-        });
-      });
-      console.log(`📊 Загружено ${this.pendingAnomalies.size} pending anomalies`);
-    } catch (error) {
-      console.log('📊 Pending anomalies не найдены, создаем новые');
-      this.pendingAnomalies = new Map();
-    }
-  }
-
-  /**
-   * Загрузить активные сделки
-   */
-  async loadActiveTrades() {
-    try {
-      const filename = path.join(__dirname, '..', 'data', 'active-trades.json');
-      const data = await fs.readFile(filename, 'utf8');
-      const tradesData = JSON.parse(data);
-      this.activeTrades.clear();
-      tradesData.forEach(trade => {
-        this.activeTrades.set(trade.symbol, trade);
-        this.watchlist.add(trade.symbol);
-      });
-      console.log(`📊 Загружено ${this.activeTrades.size} активных сделок`);
-      
-      // Отправить уведомление о существующих сделках
-      if (this.activeTrades.size > 0) {
-        await this.sendExistingTradesNotification();
-      }
-    } catch (error) {
-      console.log('📊 Активные сделки не найдены, создаем новые');
-      this.activeTrades = new Map();
-    }
-  }
-
-  /**
-   * Сохранить активные сделки
-   */
-  async saveActiveTrades() {
-    try {
-      const dataDir = path.join(__dirname, '..', 'data');
-      await fs.mkdir(dataDir, { recursive: true });
-      const filename = path.join(dataDir, 'active-trades.json');
-      const tradesData = Array.from(this.activeTrades.values());
-      await fs.writeFile(filename, JSON.stringify(tradesData, null, 2));
-      
-      // Автоматически добавить в Git stage
-      try {
-        const { stageTradingFiles } = require('./git-stage-trading-files.js');
-        stageTradingFiles();
-      } catch (error) {
-        console.log('ℹ️ Git stage не выполнен:', error.message);
-      }
-    } catch (error) {
-      console.error('❌ Ошибка сохранения активных сделок:', error.message);
-    }
-  }
-
-  /**
-   * Получить свечи с Binance с повторными попытками
+   * Получить свечи с Binance с повторными попытками (REST API специфика)
    */
   async fetchCandles(symbol, since, limit = 100, retries = 3) {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        return await this.exchange.fetchOHLCV(symbol, CONFIG.timeframe, since, limit);
+        return await this.exchange.fetchOHLCV(symbol, this.config.timeframe, since, limit);
       } catch (error) {
         if (error.message.includes('does not have market symbol')) {
           console.log(`⚠️ ${symbol} не торгуется на Binance, пропускаем`);
@@ -362,42 +153,51 @@ class VirtualTradingSystem {
   }
 
   /**
-   * Проверить подтверждение точки входа (2 TF)
+   * Проверить подтверждение входа (REST API специфика)
    */
   async checkEntryConfirmation(symbol, tradeType, anomalyCandleIndex) {
     try {
-      // Получить дополнительные свечи для подтверждения
-      const since = Date.now() - (CONFIG.historicalWindow * 15 * 60 * 1000);
-      const requiredCandles = CONFIG.historicalWindow + CONFIG.entryConfirmationTFs;
-      const candles = await this.fetchCandles(symbol, since, Math.max(requiredCandles, 20), 3);
+      const since = Date.now() - (this.config.entryConfirmationTFs * 15 * 60 * 1000);
+      const candles = await this.fetchCandles(symbol, since, this.config.entryConfirmationTFs + 1, 3);
       
-      if (candles.length < requiredCandles) {
-        console.log(`⚠️ Недостаточно данных для подтверждения ${symbol} (получено ${candles.length}/${requiredCandles})`);
-        return false;
+      if (candles.length < this.config.entryConfirmationTFs) {
+        console.log(`⚠️ Недостаточно данных для подтверждения входа ${symbol}`);
+        return;
       }
 
-      // Проверить движение в течение 2 TF после аномалии
-      const confirmationCandles = candles.slice(anomalyCandleIndex + 1, anomalyCandleIndex + 1 + CONFIG.entryConfirmationTFs);
+      const currentPrice = this.calculateAveragePrice(candles.slice(-1));
+      const anomaly = this.pendingAnomalies.get(symbol);
+      const anomalyPrice = anomaly.anomalyPrice;
       
-      if (confirmationCandles.length < CONFIG.entryConfirmationTFs) {
-        return false;
-      }
-
+      // Рассчитать изменение цены
+      const priceChange = ((currentPrice - anomalyPrice) / anomalyPrice) * 100;
+      const expectedDirection = tradeType === 'Long' ? 1 : -1;
+      
       // Проверить направление движения
-      const firstPrice = this.calculateAveragePrice([confirmationCandles[0]]);
-      const lastPrice = this.calculateAveragePrice([confirmationCandles[confirmationCandles.length - 1]]);
-      const priceDiff = (lastPrice - firstPrice) / firstPrice;
-
-      if (tradeType === 'Long' && priceDiff > CONFIG.priceThreshold) {
-        return true; // Подтверждение роста для Long
-      } else if (tradeType === 'Short' && priceDiff < -CONFIG.priceThreshold) {
-        return true; // Подтверждение падения для Short
+      if (Math.abs(priceChange) >= this.config.priceThreshold * 100 && 
+          Math.sign(priceChange) === expectedDirection) {
+        
+        console.log(`✅ ${symbol} - Подтверждение входа! Изменение: ${priceChange.toFixed(2)}%`);
+        
+        // Создать сделку (используем метод базового класса)
+        const currentVolume = candles[candles.length - 1][5]; // Объем текущей свечи
+        const trade = this.createVirtualTrade(symbol, tradeType, currentPrice, anomaly.anomalyId, currentVolume);
+        
+        // Удалить из watchlist
+        this.pendingAnomalies.delete(symbol);
+        
+        // Отправить уведомление (используем метод базового класса)
+        await this.sendNewTradeNotification(trade);
+        
+        // Сохранить данные (используем методы базового класса)
+        await this.saveActiveTrades();
+        await this.savePendingAnomalies();
+        
+      } else {
+        console.log(`⏳ ${symbol} - Ожидание подтверждения. Изменение: ${priceChange.toFixed(2)}%`);
       }
-
-      return false;
     } catch (error) {
-      console.error(`❌ Ошибка проверки подтверждения для ${symbol}:`, error.message);
-      return false;
+      console.error(`❌ Ошибка проверки подтверждения входа для ${symbol}:`, error.message);
     }
   }
 
@@ -437,231 +237,127 @@ class VirtualTradingSystem {
   }
 
   /**
-   * Проверить pending anomalies для подтверждения точки входа
+   * Проверить pending anomalies (переопределение абстрактного метода)
    */
   async checkPendingAnomalies() {
-    const symbolsToRemove = [];
+    if (this.pendingAnomalies.size === 0) {
+      return; // Нет монет в watchlist
+    }
+    
+    console.log(`⏳ [ПОТОК 2] Мониторинг ${this.pendingAnomalies.size} монет в watchlist...`);
     
     for (const [symbol, anomaly] of this.pendingAnomalies) {
       try {
-        console.log(`🔍 Проверяем pending anomaly для ${symbol}...`);
+        // Проверить подтверждение входа
+        await this.checkEntryConfirmation(symbol, anomaly.tradeType, anomaly.anomalyCandleIndex);
         
-        // Получить свечи с момента аномалии + дополнительные 2 свечи
-        const anomalyTime = new Date(anomaly.anomalyTime);
-        const timeSinceAnomaly = Date.now() - anomalyTime.getTime();
-        const minutesSinceAnomaly = Math.floor(timeSinceAnomaly / (15 * 60 * 1000));
+        // Проверить таймаут watchlist
+        this.checkWatchlistTimeout(symbol, anomaly);
         
-        // Проверить таймаут watchlist (4 TF = 1 час)
-        const watchlistTime = new Date(anomaly.watchlistTime || anomaly.anomalyTime);
-        const timeInWatchlist = Date.now() - watchlistTime.getTime();
-        const minutesInWatchlist = Math.floor(timeInWatchlist / (15 * 60 * 1000));
-        
-        if (minutesInWatchlist >= 4) { // 4 TF = 1 час
-          console.log(`⏰ ${symbol} в watchlist слишком долго (${minutesInWatchlist} TF = ${Math.floor(minutesInWatchlist / 4)} часов), удаляем из watchlist`);
-          symbolsToRemove.push(symbol);
-          continue;
-        }
-        
-        // Нам нужно: 8 свечей (historical) + свечи с момента аномалии + 2 свечи для подтверждения
-        const totalCandlesNeeded = CONFIG.historicalWindow + minutesSinceAnomaly + CONFIG.entryConfirmationTFs;
-        
-        console.log(`   📊 Время с аномалии: ${minutesSinceAnomaly} минут`);
-        console.log(`   📊 Нужно свечей: ${totalCandlesNeeded} (8 исторических + ${minutesSinceAnomaly} с аномалии + 2 для подтверждения)`);
-        
-        const since = anomalyTime.getTime() - (CONFIG.historicalWindow * 15 * 60 * 1000);
-        const candles = await this.fetchCandles(symbol, since, Math.max(totalCandlesNeeded, 30), 3);
-        
-        if (candles.length < totalCandlesNeeded) {
-          console.log(`⚠️ Недостаточно данных для ${symbol} (получено ${candles.length}/${totalCandlesNeeded})`);
-          // Проверим, может быть у нас все равно достаточно свечей для подтверждения
-          if (candles.length >= CONFIG.historicalWindow + CONFIG.entryConfirmationTFs) {
-            console.log(`   🔍 Продолжаем с доступными данными...`);
-          } else {
-            continue;
-          }
-        }
-
-        // Найти свечи после аномалии
-        const anomalyCandleTime = anomalyTime.getTime();
-        let anomalyCandleIndex = -1;
-        
-        for (let i = 0; i < candles.length; i++) {
-          if (candles[i][0] >= anomalyCandleTime) {
-            anomalyCandleIndex = i;
-            break;
-          }
-        }
-        
-        if (anomalyCandleIndex === -1) {
-          // Если не найдена точная свеча, попробуем найти ближайшую
-          console.log(`⚠️ Точная свеча аномалии не найдена для ${symbol}, ищем ближайшую...`);
-          
-          // Найти свечу, которая ближе всего к времени аномалии
-          let closestIndex = 0;
-          let closestDiff = Math.abs(candles[0][0] - anomalyCandleTime);
-          
-          for (let i = 1; i < candles.length; i++) {
-            const diff = Math.abs(candles[i][0] - anomalyCandleTime);
-            if (diff < closestDiff) {
-              closestDiff = diff;
-              closestIndex = i;
-            }
-          }
-          
-          // Если разница не больше 15 минут, используем эту свечу
-          if (closestDiff <= 15 * 60 * 1000) {
-            anomalyCandleIndex = closestIndex;
-            console.log(`   ✅ Найдена ближайшая свеча на индексе ${anomalyCandleIndex}`);
-          } else {
-            console.log(`⚠️ Не найдена подходящая свеча для ${symbol}`);
-            symbolsToRemove.push(symbol);
-            continue;
-          }
-        }
-
-        // Проверить, есть ли достаточно свечей после аномалии
-        const candlesAfterAnomaly = candles.length - anomalyCandleIndex - 1;
-        
-        console.log(`   📊 Свечей после аномалии: ${candlesAfterAnomaly} (нужно ${CONFIG.entryConfirmationTFs})`);
-        
-        if (candlesAfterAnomaly < CONFIG.entryConfirmationTFs) {
-          console.log(`⏳ Ожидаем еще ${CONFIG.entryConfirmationTFs - candlesAfterAnomaly} свечей для ${symbol}`);
-          continue;
-        }
-
-        // Проверить подтверждение точки входа
-        const confirmationCandles = candles.slice(anomalyCandleIndex + 1, anomalyCandleIndex + 1 + CONFIG.entryConfirmationTFs);
-        const firstPrice = this.calculateAveragePrice([confirmationCandles[0]]);
-        const lastPrice = this.calculateAveragePrice([confirmationCandles[confirmationCandles.length - 1]]);
-        const priceDiff = (lastPrice - firstPrice) / firstPrice;
-
-        let entryConfirmed = false;
-        
-        if (anomaly.tradeType === 'Long' && priceDiff > CONFIG.priceThreshold) {
-          entryConfirmed = true;
-        } else if (anomaly.tradeType === 'Short' && priceDiff < -CONFIG.priceThreshold) {
-          entryConfirmed = true;
-        }
-
-        if (entryConfirmed) {
-          console.log(`✅ Точка входа подтверждена для ${symbol}!`);
-          
-          // Создать виртуальную сделку
-          const currentPrice = this.calculateAveragePrice([candles[candles.length - 1]]);
-          const currentVolume = candles[candles.length - 1][5]; // Объем текущей свечи
-          const trade = this.createVirtualTrade(symbol, anomaly.tradeType, currentPrice, anomaly.anomalyId, currentVolume);
-          
-          // Установить cooldown
-          this.setAnomalyCooldown(symbol);
-          
-          // Отправить уведомление
-          await this.sendNewTradeNotification(trade);
-          
-          // Удалить из watchlist (переместить в trade list)
-          symbolsToRemove.push(symbol);
-          console.log(`✅ ${symbol} перемещен из watchlist в trade list`);
-        } else {
-          console.log(`❌ Подтверждение не получено для ${symbol} (изменение: ${(priceDiff * 100).toFixed(2)}%)`);
-          
-          // // Отправить уведомление о том, что подтверждение не получено
-          // await this.sendWatchlistUpdateNotification(symbol, anomaly.tradeType, priceDiff);
-          
-          // НЕ удаляем из pending - оставляем для дальнейшего мониторинга
-          console.log(`📋 ${symbol} остается в watchlist для дальнейшего мониторинга`);
-        }
-
+        await new Promise(resolve => setTimeout(resolve, 100)); // Небольшая задержка между запросами
       } catch (error) {
-        console.error(`❌ Ошибка проверки pending anomaly для ${symbol}:`, error.message);
-        symbolsToRemove.push(symbol);
+        console.error(`❌ Ошибка проверки ${symbol}:`, error.message);
       }
     }
+    
+    console.log('✅ [ПОТОК 2] Мониторинг watchlist завершен');
+  }
 
-    // Удалить обработанные аномалии
-    symbolsToRemove.forEach(symbol => {
+  /**
+   * Проверить таймаут watchlist (REST API специфика)
+   */
+  checkWatchlistTimeout(symbol, anomaly) {
+    const watchlistTime = new Date(anomaly.watchlistTime || anomaly.anomalyTime);
+    const timeInWatchlist = Date.now() - watchlistTime.getTime();
+    const minutesInWatchlist = Math.floor(timeInWatchlist / (15 * 60 * 1000));
+    
+    if (minutesInWatchlist >= this.config.anomalyCooldown) {
+      console.log(`⏰ ${symbol} в watchlist слишком долго (${minutesInWatchlist} TF), удаляем`);
+      
+      // Удалить из watchlist
       this.pendingAnomalies.delete(symbol);
-    });
-
-    if (symbolsToRemove.length > 0) {
-      await this.savePendingAnomalies();
+      
+      // Сохранить данные
+      this.savePendingAnomalies();
     }
   }
 
   /**
-   * Отслеживать цену активных сделок
+   * Отслеживание активных сделок (переопределение абстрактного метода)
    */
   async trackActiveTrades() {
     if (this.activeTrades.size === 0) {
       return; // Нет активных сделок для отслеживания
     }
-
-    console.log(`📊 Отслеживаем ${this.activeTrades.size} активных сделок...`);
+    
+    console.log(`📊 [ПОТОК 3] Мониторинг ${this.activeTrades.size} сделок в trade list...`);
     
     for (const [symbol, trade] of this.activeTrades) {
       try {
-        const candles = await this.fetchCandles(symbol, Date.now() - 15 * 60 * 1000, 1, 3);
+        const since = Date.now() - (2 * 15 * 60 * 1000); // Последние 2 свечи
+        const candles = await this.fetchCandles(symbol, since, 2, 3);
+        
         if (candles.length === 0) {
-          console.log(`⚠️ Не удалось получить данные для ${symbol}, пропускаем отслеживание`);
+          console.log(`⚠️ Не удалось получить данные для ${symbol}`);
           continue;
         }
-
+        
         const currentPrice = this.calculateAveragePrice(candles);
-        const currentVolume = candles[0][5]; // Объем текущей свечи
+        const currentVolume = candles[candles.length - 1][5]; // Объем текущей свечи
         
         // Обновить последнюю цену, время и объем
         trade.lastPrice = currentPrice;
         trade.lastUpdateTime = new Date().toISOString();
         trade.currentVolume = currentVolume; // Обновляем текущий объем
-
-        // Рассчитать текущий P&L
-        let currentProfitLoss = 0;
-        if (trade.type === 'Long') {
-          currentProfitLoss = ((currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
-        } else { // Short
-          currentProfitLoss = ((trade.entryPrice - currentPrice) / trade.entryPrice) * 100;
-        }
-
+        
         // Проверить условия закрытия
-        let shouldClose = false;
-        let closeReason = '';
-        let profitLoss = 0;
-
-        if (trade.type === 'Long') {
-          if (currentPrice >= trade.takeProfit) {
-            shouldClose = true;
-            closeReason = 'take_profit';
-            profitLoss = currentProfitLoss;
-          } else if (currentPrice <= trade.stopLoss) {
-            shouldClose = true;
-            closeReason = 'stop_loss';
-            profitLoss = currentProfitLoss;
-          }
-        } else { // Short
-          if (currentPrice <= trade.takeProfit) {
-            shouldClose = true;
-            closeReason = 'take_profit';
-            profitLoss = currentProfitLoss;
-          } else if (currentPrice >= trade.stopLoss) {
-            shouldClose = true;
-            closeReason = 'stop_loss';
-            profitLoss = currentProfitLoss;
-          }
-        }
-
-        if (shouldClose) {
-          console.log(`🔒 Закрываем сделку ${symbol} (${trade.type}): ${profitLoss.toFixed(2)}% - ${closeReason}`);
-          await this.closeTrade(trade, currentPrice, closeReason, profitLoss);
-        } else {
-          console.log(`📈 ${symbol} (${trade.type}): ${currentProfitLoss.toFixed(2)}% | Вход: $${trade.entryPrice.toFixed(6)} | Текущая: $${currentPrice.toFixed(6)}`);
-        }
-
+        this.checkTradeExitConditions(trade, currentPrice);
+        
+        await new Promise(resolve => setTimeout(resolve, 100)); // Небольшая задержка
       } catch (error) {
         console.error(`❌ Ошибка отслеживания ${symbol}:`, error.message);
       }
     }
+    
+    console.log('✅ [ПОТОК 3] Мониторинг trade list завершен');
+  }
 
-    // Сохранить активные сделки после обновления
-    if (this.activeTrades.size > 0) {
-      await this.saveActiveTrades();
+  /**
+   * Проверить условия выхода из сделки (REST API специфика)
+   */
+  checkTradeExitConditions(trade, currentPrice) {
+    const { symbol, type, entryPrice, stopLoss, takeProfit } = trade;
+    
+    let shouldClose = false;
+    let reason = '';
+    let profitLoss = 0;
+    
+    // Логика из базового класса
+    if (type === 'Long') {
+      if (currentPrice >= takeProfit) {
+        shouldClose = true;
+        reason = 'take_profit';
+        profitLoss = ((currentPrice - entryPrice) / entryPrice) * 100;
+      } else if (currentPrice <= stopLoss) {
+        shouldClose = true;
+        reason = 'stop_loss';
+        profitLoss = ((currentPrice - entryPrice) / entryPrice) * 100;
+      }
+    } else { // Short
+      if (currentPrice <= takeProfit) {
+        shouldClose = true;
+        reason = 'take_profit';
+        profitLoss = ((entryPrice - currentPrice) / entryPrice) * 100;
+      } else if (currentPrice >= stopLoss) {
+        shouldClose = true;
+        reason = 'stop_loss';
+        profitLoss = ((entryPrice - currentPrice) / entryPrice) * 100;
+      }
+    }
+    
+    if (shouldClose) {
+      console.log(`🔴 ${symbol} - Закрытие сделки: ${reason} (${profitLoss.toFixed(2)}%)`);
+      this.closeTrade(trade, currentPrice, reason, profitLoss);
     }
   }
 
@@ -906,12 +602,12 @@ class VirtualTradingSystem {
   }
 
   /**
-   * Проверить аномалии для одной монеты
+   * Проверить аномалии для одной монеты (переопределение абстрактного метода)
    */
   async checkAnomalies(coin) {
     const symbol = `${coin.symbol}/USDT`;
     
-    // Проверяем cooldown
+    // Проверяем cooldown (используем метод базового класса)
     if (this.isAnomalyOnCooldown(symbol)) {
       console.log(`🚫 ${symbol} на cooldown, пропускаем`);
       return;
@@ -930,11 +626,11 @@ class VirtualTradingSystem {
     }
 
     try {
-      const since = Date.now() - (CONFIG.historicalWindow * 15 * 60 * 1000);
-      const candles = await this.fetchCandles(symbol, since, Math.max(CONFIG.historicalWindow, 20), 3);
+      const since = Date.now() - (this.config.historicalWindow * 15 * 60 * 1000);
+      const candles = await this.fetchCandles(symbol, since, Math.max(this.config.historicalWindow, 20), 3);
       
-      if (candles.length < CONFIG.historicalWindow) {
-        console.log(`⚠️ Недостаточно данных для ${symbol} (получено ${candles.length}/${CONFIG.historicalWindow})`);
+      if (candles.length < this.config.historicalWindow) {
+        console.log(`⚠️ Недостаточно данных для ${symbol} (получено ${candles.length}/${this.config.historicalWindow})`);
         return;
       }
 
@@ -946,14 +642,14 @@ class VirtualTradingSystem {
       const anomalyPrice = this.calculateAveragePrice([anomalyCandle]);
       const avgHistoricalPrice = this.calculateAveragePrice(historicalCandles);
 
-      // Обнаружение аномалии объема
+      // Обнаружение аномалии объема (используем метод базового класса)
       if (!this.detectVolumeAnomaly(anomalyVolume, avgHistoricalVolume)) {
         return;
       }
 
       console.log(`🚨 Аномалия объема обнаружена для ${symbol}!`);
 
-      // Определение типа сделки
+      // Определение типа сделки (используем метод базового класса)
       const tradeType = this.determineTradeType(anomalyPrice, avgHistoricalPrice);
       
       if (!tradeType) {
@@ -982,9 +678,6 @@ class VirtualTradingSystem {
       });
       
       console.log(`📝 Аномалия ${symbol} добавлена в pending (${tradeType})`);
-      
-      // Уведомления о добавлении в watchlist отключены
-      // await this.sendWatchlistAddedNotification(symbol, tradeType, anomalyId);
       
       await this.savePendingAnomalies();
 
@@ -1195,8 +888,7 @@ class VirtualTradingSystem {
   }
 
   /**
-   * Поток 1: Поиск аномалий среди всех монет (5 минут)
-   * WebSocket-готовый метод
+   * Поток 1: Поиск аномалий среди всех монет (5 минут) - REST API
    */
   async runAnomalyCheck() {
     console.log('🔍 [ПОТОК 1] Поиск аномалий среди всех монет...');
@@ -1210,63 +902,29 @@ class VirtualTradingSystem {
   }
 
   /**
-   * Поток 2: Мониторинг watchlist (30 секунд)
-   * WebSocket-готовый метод
+   * Поток 2: Мониторинг watchlist (30 секунд) - REST API
    */
   async runPendingCheck() {
-    if (this.pendingAnomalies.size === 0) {
-      return; // Нет монет в watchlist
-    }
-    
-    console.log(`⏳ [ПОТОК 2] Мониторинг ${this.pendingAnomalies.size} монет в watchlist...`);
     await this.checkPendingAnomalies();
-    console.log('✅ [ПОТОК 2] Мониторинг watchlist завершен');
   }
 
   /**
-   * Поток 3: Мониторинг trade list (30 секунд)
-   * WebSocket-готовый метод
+   * Поток 3: Мониторинг trade list (30 секунд) - REST API
    */
   async runActiveTradesCheck() {
-    if (this.activeTrades.size === 0) {
-      return; // Нет активных сделок для отслеживания
-    }
-    
-    console.log(`📊 [ПОТОК 3] Мониторинг ${this.activeTrades.size} сделок в trade list...`);
     await this.trackActiveTrades();
-    console.log('✅ [ПОТОК 3] Мониторинг trade list завершен');
   }
 
   /**
-   * Запустить мониторинг (устаревший метод - для совместимости)
-   */
-  async runMonitoring() {
-    await this.runAnomalyCheck();
-    await this.runPendingCheck();
-  }
-
-  /**
-   * Запустить систему
+   * Запустить систему (переопределение абстрактного метода)
    */
   async start() {
     try {
-      // Инициализировать приложение
-      this.app = new CryptoScreenerApp();
-      await this.app.start();
+      // Инициализировать систему
+      await this.initialize();
       
-      console.log('🚀 Запуск системы виртуальной торговли...');
+      console.log('🚀 Запуск системы виртуальной торговли (REST API)...');
       
-      // Загрузить данные
-      const loaded = await this.loadFilteredCoins();
-      if (!loaded) {
-        throw new Error('Не удалось загрузить список монет');
-      }
-
-      await this.loadTradeHistory();
-      await this.loadTradingStatistics();
-      await this.loadPendingAnomalies();
-      await this.loadActiveTrades();
-
       // Запустить первый цикл всех потоков
       await this.runAnomalyCheck();
       await this.runPendingCheck();
@@ -1323,9 +981,11 @@ class VirtualTradingSystem {
   }
 
   /**
-   * Остановить систему
+   * Остановить систему (переопределение абстрактного метода)
    */
   async stop() {
+    console.log('🛑 Остановка системы...');
+    
     // Остановить все потоки
     if (this.anomalyCheckInterval) {
       clearInterval(this.anomalyCheckInterval);
@@ -1342,7 +1002,7 @@ class VirtualTradingSystem {
       this.activeTradesInterval = null;
     }
     
-    // Сохранить данные перед остановкой
+    // Сохранить данные перед остановкой (используем методы базового класса)
     await this.saveTradeHistory();
     await this.savePendingAnomalies();
     await this.saveActiveTrades();
@@ -1352,7 +1012,7 @@ class VirtualTradingSystem {
       this.app = null;
     }
     
-    console.log('🛑 Система виртуальной торговли остановлена');
+    console.log('✅ Система остановлена');
   }
 }
 
