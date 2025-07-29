@@ -391,10 +391,8 @@ class VirtualTradingSystem {
       entryTime: new Date().toISOString(),
       status: 'open',
       virtualAmount: CONFIG.virtualDeposit,
-      priceHistory: [{
-        time: new Date().toISOString(),
-        price: entryPrice
-      }]
+      lastPrice: entryPrice,
+      lastUpdateTime: new Date().toISOString()
     };
 
     this.activeTrades.set(symbol, trade);
@@ -573,11 +571,9 @@ class VirtualTradingSystem {
 
         const currentPrice = this.calculateAveragePrice(candles);
         
-        // Добавить цену в историю
-        trade.priceHistory.push({
-          time: new Date().toISOString(),
-          price: currentPrice
-        });
+        // Обновить последнюю цену и время
+        trade.lastPrice = currentPrice;
+        trade.lastUpdateTime = new Date().toISOString();
 
         // Рассчитать текущий P&L
         let currentProfitLoss = 0;
@@ -1098,21 +1094,47 @@ class VirtualTradingSystem {
       message += `🟢 LONG (${longTrades.length}):\n`;
       longTrades.forEach(trade => {
         const symbol = trade.symbol.replace('/USDT', '');
-        message += `• ${symbol}: $${trade.entryPrice.toFixed(6)}\n`;
+        const entryTime = new Date(trade.entryTime).toLocaleString('ru-RU');
+        const lastUpdateTime = trade.lastUpdateTime ? new Date(trade.lastUpdateTime).toLocaleString('ru-RU') : 'Не обновлялось';
+        
+        // Рассчитать изменение в процентах
+        const lastPrice = trade.lastPrice || trade.entryPrice;
+        const priceChange = ((lastPrice - trade.entryPrice) / trade.entryPrice) * 100;
+        const changeEmoji = priceChange >= 0 ? '🟢' : '🔴';
+        const changeSign = priceChange >= 0 ? '+' : '';
+        
+        message += `• ${symbol} ${changeEmoji}\n`;
+        message += `  🕐 Вход: ${entryTime}\n`;
+        message += `  💰 Точка входа: $${trade.entryPrice.toFixed(6)}\n`;
+        message += `  📈 Текущая цена: $${lastPrice.toFixed(6)}\n`;
+        message += `  📊 Изменение: ${changeSign}${priceChange.toFixed(2)}%\n`;
+        message += `  ⏰ Обновлено: ${lastUpdateTime}\n\n`;
       });
-      message += '\n';
     }
     
     if (shortTrades.length > 0) {
       message += `🔴 SHORT (${shortTrades.length}):\n`;
       shortTrades.forEach(trade => {
         const symbol = trade.symbol.replace('/USDT', '');
-        message += `• ${symbol}: $${trade.entryPrice.toFixed(6)}\n`;
+        const entryTime = new Date(trade.entryTime).toLocaleString('ru-RU');
+        const lastUpdateTime = trade.lastUpdateTime ? new Date(trade.lastUpdateTime).toLocaleString('ru-RU') : 'Не обновлялось';
+        
+        // Рассчитать изменение в процентах (для Short логика обратная)
+        const lastPrice = trade.lastPrice || trade.entryPrice;
+        const priceChange = ((trade.entryPrice - lastPrice) / trade.entryPrice) * 100;
+        const changeEmoji = priceChange >= 0 ? '🟢' : '🔴';
+        const changeSign = priceChange >= 0 ? '+' : '';
+        
+        message += `• ${symbol} ${changeEmoji}\n`;
+        message += `  🕐 Вход: ${entryTime}\n`;
+        message += `  💰 Точка входа: $${trade.entryPrice.toFixed(6)}\n`;
+        message += `  📈 Текущая цена: $${lastPrice.toFixed(6)}\n`;
+        message += `  📊 Изменение: ${changeSign}${priceChange.toFixed(2)}%\n`;
+        message += `  ⏰ Обновлено: ${lastUpdateTime}\n\n`;
       });
-      message += '\n';
     }
     
-    message += `💡 Система продолжает мониторинг этих сделок каждые 5 минут`;
+    message += `💡 Система мониторит эти сделки каждые 30 секунд`;
     
     return message;
   }

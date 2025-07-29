@@ -1,12 +1,18 @@
 [
   {
-    "symbol": "XTZ/USDT",
-    "anomalyId": "XTZ_1753778956149",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-29T08:30:00.000Z",
-    "watchlistTime": "2025-07-29T08:49:16.149Z",
+    "symbol": "SUN/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T08:45:00.000Z",
     "anomalyCandleIndex": 6,
-    "anomalyPrice": 0.8706499999999999,
-    "historicalPrice": 0.8778416666666665
+    "anomalyPrice": 0.0216,
+    "historicalPrice": 0.02126
+  },
+  {
+    "symbol": "ZEC/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T08:45:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 41.5,
+    "historicalPrice": 41.08083333333334
   }
 ]
