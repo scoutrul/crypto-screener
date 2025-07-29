@@ -21,8 +21,6 @@ const TRADING_FILES = [
  * Добавить файлы в Git stage
  */
 function stageTradingFiles() {
-  console.log('🔄 Добавление торговых файлов в Git stage...');
-  
   let stagedCount = 0;
   
   for (const file of TRADING_FILES) {
@@ -31,7 +29,6 @@ function stageTradingFiles() {
       if (fs.existsSync(file)) {
         // Добавить файл в Git stage
         execSync(`git add "${file}"`, { stdio: 'pipe' });
-        console.log(`✅ ${file} добавлен в stage`);
         stagedCount++;
       } else {
         console.log(`⚠️ Файл ${file} не найден`);
@@ -42,17 +39,12 @@ function stageTradingFiles() {
   }
   
   if (stagedCount > 0) {
-    console.log(`\n📊 Добавлено ${stagedCount} файлов в Git stage`);
-    
-    // Показать статус
+    // Показать статус только если есть изменения
     try {
-      console.log('\n📋 Статус Git:');
-      execSync('git status --porcelain', { stdio: 'inherit' });
+      execSync('git status --porcelain', { stdio: 'pipe' });
     } catch (error) {
       console.error('❌ Ошибка получения статуса Git:', error.message);
     }
-  } else {
-    console.log('ℹ️ Нет файлов для добавления в stage');
   }
 }
 

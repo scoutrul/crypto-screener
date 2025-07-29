@@ -94,7 +94,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
    * Обработать приоритетную очередь
    */
   async processQueue() {
-    if (this.isProcessing || this.taskQueue.length === 0) {
+    if (this.isProcessing) {
       return;
     }
     
@@ -112,6 +112,17 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       
       // Небольшая пауза между задачами
       await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    
+    // Если очередь пуста, заполняем её задачами из приоритета 3 (аномалии)
+    if (this.taskQueue.length === 0) {
+      console.log('📦 Очередь пуста, заполняем задачами из приоритета 3 (аномалии)...');
+      this.addTaskToQueue(async () => {
+        console.log('🔍 [ПОТОК 3] Запуск поиска аномалий из очереди...');
+        await this.runAnomalyCheck();
+      }, 3);
+    } else {
+      console.log(`📊 Очередь содержит ${this.taskQueue.length} задач`);
     }
     
     this.isProcessing = false;
@@ -1111,6 +1122,13 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       await this.runActiveTradesCheck(); // Приоритет 1 - сначала активные сделки
       await this.runPendingCheck();      // Приоритет 2 - потом watchlist
       await this.runAnomalyCheck();      // Приоритет 3 - потом общий мониторинг
+
+      // Заполнить очередь задачами из приоритета 3 для непрерывной работы
+      console.log('📦 Инициализация очереди задачами из приоритета 3...');
+      this.addTaskToQueue(async () => {
+        console.log('🔍 [ПОТОК 3] Инициализация поиска аномалий...');
+        await this.runAnomalyCheck();
+      }, 3);
 
       // Установить интервалы для 3 потоков с приоритетной очередью
       this.activeTradesInterval = setInterval(async () => {
