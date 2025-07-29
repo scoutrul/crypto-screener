@@ -29,6 +29,13 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     });
     this.app = null;
     
+    // Приоритетная очередь для потоков
+    this.taskQueue = [];
+    this.isProcessing = false;
+    this.lastActiveTradesCheck = 0;
+    this.lastPendingCheck = 0;
+    this.lastAnomalyCheck = 0;
+    
     // Интервалы для разных потоков (REST API)
     this.anomalyCheckInterval = null;      // Поток 1: 5 минут
     this.pendingCheckInterval = null;      // Поток 2: 30 секунд  
@@ -62,6 +69,47 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     }
     
     console.log('✅ Система инициализирована');
+  }
+
+  /**
+   * Добавить задачу в приоритетную очередь
+   */
+  addTaskToQueue(task, priority) {
+    this.taskQueue.push({ task, priority, timestamp: Date.now() });
+    // Сортировка по приоритету (1 - высший приоритет)
+    this.taskQueue.sort((a, b) => a.priority - b.priority);
+    
+    // Запустить обработку очереди, если она не запущена
+    if (!this.isProcessing) {
+      this.processQueue();
+    }
+  }
+
+  /**
+   * Обработать приоритетную очередь
+   */
+  async processQueue() {
+    if (this.isProcessing || this.taskQueue.length === 0) {
+      return;
+    }
+    
+    this.isProcessing = true;
+    
+    while (this.taskQueue.length > 0) {
+      const { task, priority } = this.taskQueue.shift();
+      
+      try {
+        console.log(`🎯 Выполнение задачи с приоритетом ${priority} (${this.taskQueue.length} в очереди)`);
+        await task();
+      } catch (error) {
+        console.error(`❌ Ошибка выполнения задачи с приоритетом ${priority}:`, error.message);
+      }
+      
+      // Небольшая пауза между задачами
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    
+    this.isProcessing = false;
   }
 
   /**
@@ -692,6 +740,20 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     console.log(`👀 Активных сделок: ${this.activeTrades.size}`);
     console.log(`📋 В watchlist: ${this.watchlist.size}`);
     console.log(`🕐 Последнее обновление: ${new Date(stats.lastUpdated).toLocaleString()}`);
+    
+    // Добавить статистику приоритетной очереди
+    console.log('\n🎯 СТАТИСТИКА ПРИОРИТЕТНОЙ ОЧЕРЕДИ:');
+    console.log(`📦 Задач в очереди: ${this.taskQueue.length}`);
+    console.log(`⚙️ Обработка активна: ${this.isProcessing ? 'Да' : 'Нет'}`);
+    
+    const now = Date.now();
+    const activeTradesAgo = this.lastActiveTradesCheck ? Math.round((now - this.lastActiveTradesCheck) / 1000) : 'Никогда';
+    const pendingAgo = this.lastPendingCheck ? Math.round((now - this.lastPendingCheck) / 1000) : 'Никогда';
+    const anomalyAgo = this.lastAnomalyCheck ? Math.round((now - this.lastAnomalyCheck) / 1000) : 'Никогда';
+    
+    console.log(`🥇 Активные сделки: ${activeTradesAgo} сек назад`);
+    console.log(`🥈 Watchlist: ${pendingAgo} сек назад`);
+    console.log(`🥉 Аномалии: ${anomalyAgo} сек назад`);
   }
 
   /**
@@ -983,52 +1045,64 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
   /**
    * Поток 1: Поиск аномалий среди всех монет (5 минут) - REST API
    * Многопоточная обработка с ограниченным количеством одновременных запросов
+   * Приоритет 3 - низший приоритет
    */
   async runAnomalyCheck() {
-    console.log('🔍 [ПОТОК 1] Поиск аномалий среди всех монет (многопоточный)...');
-    
-    const batchSize = 10; // Количество одновременных запросов
-    const delayBetweenBatches = 1000; // Задержка между батчами (1 секунда)
-    
-    // Разбить монеты на батчи
-    for (let i = 0; i < this.filteredCoins.length; i += batchSize) {
-      const batch = this.filteredCoins.slice(i, i + batchSize);
+    this.addTaskToQueue(async () => {
+      console.log('🔍 [ПОТОК 1] Поиск аномалий среди всех монет (многопоточный)...');
       
-      console.log(`📦 Обработка батча ${Math.floor(i / batchSize) + 1}/${Math.ceil(this.filteredCoins.length / batchSize)} (${batch.length} монет)`);
+      const batchSize = 10; // Количество одновременных запросов
+      const delayBetweenBatches = 1000; // Задержка между батчами (1 секунда)
       
-      // Запустить все запросы в батче параллельно
-      const promises = batch.map(async (coin) => {
-        try {
-          await this.checkAnomalies(coin);
-        } catch (error) {
-          console.log(`⚠️ Ошибка обработки ${coin.symbol}:`, error.message);
+      // Разбить монеты на батчи
+      for (let i = 0; i < this.filteredCoins.length; i += batchSize) {
+        const batch = this.filteredCoins.slice(i, i + batchSize);
+        
+        console.log(`📦 Обработка батча ${Math.floor(i / batchSize) + 1}/${Math.ceil(this.filteredCoins.length / batchSize)} (${batch.length} монет)`);
+        
+        // Запустить все запросы в батче параллельно
+        const promises = batch.map(async (coin) => {
+          try {
+            await this.checkAnomalies(coin);
+          } catch (error) {
+            console.log(`⚠️ Ошибка обработки ${coin.symbol}:`, error.message);
+          }
+        });
+        
+        // Ждать завершения всех запросов в батче
+        await Promise.all(promises);
+        
+        // Задержка между батчами для избежания rate limiting
+        if (i + batchSize < this.filteredCoins.length) {
+          await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
         }
-      });
-      
-      // Ждать завершения всех запросов в батче
-      await Promise.all(promises);
-      
-      // Задержка между батчами для избежания rate limiting
-      if (i + batchSize < this.filteredCoins.length) {
-        await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
       }
-    }
-    
-    console.log('✅ [ПОТОК 1] Поиск аномалий завершен');
+      
+      console.log('✅ [ПОТОК 1] Поиск аномалий завершен');
+      this.lastAnomalyCheck = Date.now();
+    }, 3);
   }
 
   /**
    * Поток 2: Мониторинг watchlist (30 секунд) - REST API
+   * Приоритет 2 - средний приоритет
    */
   async runPendingCheck() {
-    await this.checkPendingAnomalies();
+    this.addTaskToQueue(async () => {
+      await this.checkPendingAnomalies();
+      this.lastPendingCheck = Date.now();
+    }, 2);
   }
 
   /**
    * Поток 3: Мониторинг trade list (30 секунд) - REST API
+   * Приоритет 1 - высший приоритет
    */
   async runActiveTradesCheck() {
-    await this.trackActiveTrades();
+    this.addTaskToQueue(async () => {
+      await this.trackActiveTrades();
+      this.lastActiveTradesCheck = Date.now();
+    }, 1);
   }
 
   /**
@@ -1039,30 +1113,30 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       // Инициализировать систему
       await this.initialize();
       
-      console.log('🚀 Запуск системы виртуальной торговли (REST API)...');
+      console.log('🚀 Запуск системы виртуальной торговли (REST API) с приоритетной очередью...');
       
-      // Запустить первый цикл всех потоков
-      await this.runAnomalyCheck();
-      await this.runPendingCheck();
-      await this.runActiveTradesCheck();
+      // Запустить первый цикл всех потоков в правильном порядке приоритетов
+      await this.runActiveTradesCheck(); // Приоритет 1 - сначала активные сделки
+      await this.runPendingCheck();      // Приоритет 2 - потом watchlist
+      await this.runAnomalyCheck();      // Приоритет 3 - потом общий мониторинг
 
-      // Установить интервалы для 3 потоков
-      this.anomalyCheckInterval = setInterval(async () => {
-        await this.runAnomalyCheck();
-      }, 5 * 60 * 1000); // 5 минут
+      // Установить интервалы для 3 потоков с приоритетной очередью
+      this.activeTradesInterval = setInterval(async () => {
+        await this.runActiveTradesCheck();
+      }, 30 * 1000); // 30 секунд - высший приоритет
 
       this.pendingCheckInterval = setInterval(async () => {
         await this.runPendingCheck();
-      }, 30 * 1000); // 30 секунд
+      }, 30 * 1000); // 30 секунд - средний приоритет
 
-      this.activeTradesInterval = setInterval(async () => {
-        await this.runActiveTradesCheck();
-      }, 30 * 1000); // 30 секунд
+      this.anomalyCheckInterval = setInterval(async () => {
+        await this.runAnomalyCheck();
+      }, 5 * 60 * 1000); // 5 минут - низший приоритет
 
-      console.log('⏰ Многоуровневая система мониторинга запущена:');
-      console.log('   🔍 Поток 1 (аномалии): каждые 5 минут');
-      console.log('   ⏳ Поток 2 (watchlist): каждые 30 секунд');
-      console.log('   📊 Поток 3 (активные сделки): каждые 30 секунд');
+      console.log('⏰ Приоритетная система мониторинга запущена:');
+      console.log('   🥇 Поток 3 (активные сделки): каждые 30 сек - ПРИОРИТЕТ 1');
+      console.log('   🥈 Поток 2 (watchlist): каждые 30 сек - ПРИОРИТЕТ 2');
+      console.log('   🥉 Поток 1 (аномалии): каждые 5 мин - ПРИОРИТЕТ 3');
       console.log('   📤 Статус в Telegram: каждые 2 часа');
 
       // Отправить начальный статус через 1 минуту после запуска
