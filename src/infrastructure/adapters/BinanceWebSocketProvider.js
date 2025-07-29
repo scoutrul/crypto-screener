@@ -40,6 +40,7 @@ class BinanceWebSocketProvider {
           console.log('✅ WebSocket соединение установлено');
           this.isConnected = true;
           this.reconnectAttempts = 0;
+          this.lastPong = Date.now();
           this.startHeartbeat();
           
           if (this.onConnectCallback) {
@@ -62,6 +63,9 @@ class BinanceWebSocketProvider {
           console.log(`🔌 WebSocket соединение закрыто: ${code} - ${reason}`);
           this.isConnected = false;
           this.stopHeartbeat();
+          
+          // Очистить подписки при отключении
+          this.subscriptions.clear();
           
           if (this.onDisconnectCallback) {
             this.onDisconnectCallback(code, reason);
@@ -94,12 +98,13 @@ class BinanceWebSocketProvider {
   disconnect() {
     console.log('🔌 Отключение от WebSocket...');
     
-    if (this.ws) {
-      this.stopHeartbeat();
+    this.stopHeartbeat();
+    
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.close();
-      this.ws = null;
     }
     
+    this.ws = null;
     this.isConnected = false;
     this.subscriptions.clear();
   }
@@ -115,10 +120,19 @@ class BinanceWebSocketProvider {
       throw new Error('WebSocket не подключен');
     }
     
-    const streamName = `${symbol.toLowerCase()}@kline_${interval}`;
+    // Нормализовать символ (всегда в верхнем регистре)
+    const normalizedSymbol = symbol.toUpperCase();
+    
+    // Проверить, не подписаны ли уже на этот символ
+    if (this.subscriptions.has(normalizedSymbol)) {
+      console.log(`⚠️ [WS] Уже подписаны на ${normalizedSymbol}@kline_${interval}`);
+      return;
+    }
+    
+    const streamName = `${normalizedSymbol.toLowerCase()}@kline_${interval}`;
     
     // Сохранить подписку
-    this.subscriptions.set(symbol, {
+    this.subscriptions.set(normalizedSymbol, {
       interval,
       callback,
       streamName
@@ -132,7 +146,7 @@ class BinanceWebSocketProvider {
     };
     
     this.ws.send(JSON.stringify(subscribeMessage));
-    console.log(`📡 Подписка на ${streamName}`);
+    console.log(`📡 [WS] Подписка на ${streamName}`);
   }
 
   /**
@@ -165,24 +179,41 @@ class BinanceWebSocketProvider {
    * Подписаться на несколько потоков одновременно
    * @param {Array} streams - Массив объектов { symbol, interval, callback }
    */
-  subscribeToMultipleStreams(streams) {
+  async subscribeToMultipleStreams(streams) {
     if (!this.isConnected) {
       throw new Error('WebSocket не подключен');
     }
     
     const streamNames = [];
+    const newSubscriptions = [];
     
     streams.forEach(({ symbol, interval, callback }) => {
-      const streamName = `${symbol.toLowerCase()}@kline_${interval}`;
+      // Нормализовать символ
+      const normalizedSymbol = symbol.toUpperCase();
+      
+      // Проверить, не подписаны ли уже
+      if (this.subscriptions.has(normalizedSymbol)) {
+        console.log(`⚠️ [WS] Пропускаем ${normalizedSymbol} - уже подписаны`);
+        return;
+      }
+      
+      const streamName = `${normalizedSymbol.toLowerCase()}@kline_${interval}`;
       streamNames.push(streamName);
       
       // Сохранить подписку
-      this.subscriptions.set(symbol, {
+      this.subscriptions.set(normalizedSymbol, {
         interval,
         callback,
         streamName
       });
+      
+      newSubscriptions.push({ symbol: normalizedSymbol, streamName });
     });
+    
+    if (streamNames.length === 0) {
+      console.log('📡 [WS] Нет новых потоков для подписки');
+      return;
+    }
     
     // Отправить запрос на подписку
     const subscribeMessage = {
@@ -192,7 +223,10 @@ class BinanceWebSocketProvider {
     };
     
     this.ws.send(JSON.stringify(subscribeMessage));
-    console.log(`📡 Подписка на ${streamNames.length} потоков:`, streamNames);
+    console.log(`📡 [WS] Подписка на ${streamNames.length} новых потоков:`, newSubscriptions.map(s => s.symbol));
+    
+    // Добавить задержку после подписки для избежания rate limits
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
   /**
@@ -209,18 +243,23 @@ class BinanceWebSocketProvider {
   handleMessage(message) {
     // Обработка ответов на команды
     if (message.result !== undefined) {
-      console.log('📨 Ответ на команду:', message);
+      console.log('📨 [WS] Ответ на команду:', message);
       return;
     }
     
     // Обработка ошибок
     if (message.error) {
-      console.error('❌ WebSocket ошибка:', message.error);
+      console.error('❌ [WS] WebSocket ошибка:', message.error);
       return;
     }
     
     // Обработка данных свечей
     if (message.e === 'kline') {
+      console.log(`📊 [WS] Получены данные свечи для ${message.s}:`);
+      console.log(`   🕐 Время: ${new Date(message.E).toLocaleString()}`);
+      console.log(`   💰 Цена: $${message.k.c}`);
+      console.log(`   📈 Объем: ${message.k.v}`);
+      console.log(`   ✅ Закрыта: ${message.k.x}`);
       this.handleKlineData(message);
       return;
     }
@@ -228,61 +267,24 @@ class BinanceWebSocketProvider {
     // Обработка ping/pong
     if (message.pong) {
       this.lastPong = Date.now();
+      console.log('🏓 [WS] Pong получен');
       return;
     }
     
-    console.log('📨 Неизвестное сообщение:', message);
-  }
-
-  /**
-   * Обработка данных свечей
-   * @param {Object} klineData - Данные свечи
-   */
-  handleKlineData(klineData) {
-    const { s: symbol, k: kline } = klineData;
-    
-    // Найти подписку для этого символа
-    const subscription = this.subscriptions.get(symbol);
-    if (!subscription) {
-      return;
-    }
-    
-    // Проверить, что свеча закрыта
-    if (!kline.x) {
-      return; // Свеча еще не закрыта
-    }
-    
-    // Создать объект свечи в нужном формате
-    const candle = {
-      openTime: kline.t,
-      open: parseFloat(kline.o),
-      high: parseFloat(kline.h),
-      low: parseFloat(kline.l),
-      close: parseFloat(kline.c),
-      volume: parseFloat(kline.v),
-      closeTime: kline.T,
-      quoteAssetVolume: parseFloat(kline.q),
-      numberOfTrades: kline.n,
-      takerBuyBaseAssetVolume: parseFloat(kline.V),
-      takerBuyQuoteAssetVolume: parseFloat(kline.Q),
-      isClosed: kline.x
-    };
-    
-    // Вызвать callback с данными свечи
-    try {
-      subscription.callback(symbol, candle);
-    } catch (error) {
-      console.error(`❌ Ошибка в callback для ${symbol}:`, error);
-    }
+    console.log('📨 [WS] Неизвестное сообщение:', message);
   }
 
   /**
    * Запустить heartbeat механизм
    */
   startHeartbeat() {
+    console.log('🏓 [WS] Запуск heartbeat механизма');
     this.pingInterval = setInterval(() => {
-      if (this.isConnected && this.ws) {
-        this.ws.send(JSON.stringify({ ping: Date.now() }));
+      if (this.isConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
+        // Правильный формат ping сообщения для Binance
+        const pingMessage = { ping: Date.now() };
+        this.ws.send(JSON.stringify(pingMessage));
+        console.log('🏓 [WS] Ping отправлен');
         
         // Проверить, не истек ли pong timeout
         if (Date.now() - this.lastPong > 60000) { // 60 секунд
@@ -322,6 +324,56 @@ class BinanceWebSocketProvider {
         console.error('❌ Ошибка переподключения:', error);
       });
     }, delay);
+  }
+
+  /**
+   * Обработка данных свечей
+   * @param {Object} klineData - Данные свечи
+   */
+  handleKlineData(klineData) {
+    const { s: symbol, k: kline } = klineData;
+    
+    console.log(`📊 [WS] Обработка данных свечи для ${symbol}:`);
+    console.log(`   💰 Цена: $${kline.c}`);
+    console.log(`   📈 Объем: ${kline.v}`);
+    console.log(`   ✅ Закрыта: ${kline.x}`);
+    
+    // Найти подписку для этого символа
+    const subscription = this.subscriptions.get(symbol);
+    if (!subscription) {
+      console.log(`⚠️ [WS] Подписка не найдена для ${symbol}`);
+      return;
+    }
+    
+    // Создать объект свечи в нужном формате
+    const candle = {
+      openTime: kline.t,
+      open: parseFloat(kline.o),
+      high: parseFloat(kline.h),
+      low: parseFloat(kline.l),
+      close: parseFloat(kline.c),
+      volume: parseFloat(kline.v),
+      closeTime: kline.T,
+      quoteAssetVolume: parseFloat(kline.q),
+      numberOfTrades: kline.n,
+      takerBuyBaseAssetVolume: parseFloat(kline.V),
+      takerBuyQuoteAssetVolume: parseFloat(kline.Q),
+      isClosed: kline.x
+    };
+    
+    // Обрабатываем как открытые, так и закрытые свечи
+    if (kline.x) {
+      console.log(`✅ [WS] Свеча ${symbol} закрыта, обрабатываем`);
+    } else {
+      console.log(`⏳ [WS] Свеча ${symbol} обновляется в реальном времени`);
+    }
+    
+    // Вызвать callback с данными свечи
+    try {
+      subscription.callback(symbol, candle);
+    } catch (error) {
+      console.error(`❌ Ошибка в callback для ${symbol}:`, error);
+    }
   }
 
   /**
