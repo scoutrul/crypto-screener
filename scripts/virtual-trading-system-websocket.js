@@ -184,22 +184,54 @@ class VirtualTradingSystemWebSocket extends VirtualTradingBaseService {
    */
   async checkEntryConfirmation(symbol, anomaly, currentCandle) {
     const currentPrice = currentCandle.close;
-    const anomalyPrice = anomaly.anomalyPrice;
-    const tradeType = anomaly.tradeType;
     
-    // Рассчитать изменение цены
-    const priceChange = ((currentPrice - anomalyPrice) / anomalyPrice) * 100;
-    const expectedDirection = tradeType === 'Long' ? 1 : -1;
+    console.log(`🔍 [CONFIRMATION] Проверка подтверждения входа для ${symbol}:`);
+    console.log(`   💰 Текущая цена: $${currentPrice}`);
+    console.log(`   📊 Аномалия: ${anomaly.tradeType} по $${anomaly.anomalyPrice}`);
     
-    // Проверить направление движения
-    if (Math.abs(priceChange) >= this.config.priceThreshold * 100 && 
-        Math.sign(priceChange) === expectedDirection) {
+    // Этап 2: Проверка консолидации (если еще не проверена)
+    if (!anomaly.isConsolidated) {
+      console.log(`🔍 [CONSOLIDATION] Проверка консолидации для ${symbol}...`);
       
-      console.log(`✅ ${symbol} - Подтверждение входа! Изменение: ${priceChange.toFixed(2)}%`);
+      if (!this.checkConsolidation(currentCandle)) {
+        console.log(`❌ ${symbol} - Консолидация не подтвердилась, удаляем из watchlist`);
+        this.pendingAnomalies.delete(symbol);
+        await this.savePendingAnomalies();
+        return;
+      }
+      
+      // Консолидация подтвердилась, определяем сетап
+      console.log(`✅ ${symbol} - Консолидация подтвердилась`);
+      anomaly.isConsolidated = true;
+      anomaly.closePrice = currentPrice;
+      
+      // Этап 3: Определение сетапа и триггеров
+      const { entryLevel, cancelLevel } = this.calculateEntryLevels(currentPrice, anomaly.tradeType);
+      anomaly.entryLevel = entryLevel;
+      anomaly.cancelLevel = cancelLevel;
+      
+      console.log(`📊 ${symbol} - Уровни установлены: вход $${entryLevel}, отмена $${cancelLevel}`);
+      await this.savePendingAnomalies();
+      return;
+    }
+    
+    // Этап 4: Проверка условий входа или отмены
+    const result = this.checkEntryConditions(currentPrice, anomaly.entryLevel, anomaly.cancelLevel, anomaly.tradeType);
+    
+    if (result === 'entry') {
+      console.log(`✅ ${symbol} - Условие входа выполнено!`);
       
       // Создать сделку (используем метод базового класса)
       const currentVolume = currentCandle[5]; // Объем текущей свечи
-      const trade = this.createVirtualTrade(symbol, tradeType, currentPrice, anomaly.anomalyId, currentVolume);
+      const trade = this.createVirtualTrade(
+        symbol, 
+        anomaly.tradeType, 
+        currentPrice, 
+        anomaly.anomalyId, 
+        currentVolume,
+        anomaly.entryLevel,
+        anomaly.cancelLevel
+      );
       
       // Удалить из watchlist
       this.pendingAnomalies.delete(symbol);
@@ -225,8 +257,30 @@ class VirtualTradingSystemWebSocket extends VirtualTradingBaseService {
       await this.saveActiveTrades();
       await this.savePendingAnomalies();
       
+    } else if (result === 'cancel') {
+      console.log(`❌ ${symbol} - Условие отмены выполнено, удаляем из watchlist`);
+      this.pendingAnomalies.delete(symbol);
+      await this.savePendingAnomalies();
+      
+      // Отписаться от WebSocket потока
+      if (this.wsProvider) {
+        this.wsProvider.unsubscribeFromKline(symbol.replace('/USDT', ''));
+      }
+      
     } else {
-      console.log(`⏳ ${symbol} - Ожидание подтверждения. Изменение: ${priceChange.toFixed(2)}%`);
+      // Проверить таймаут
+      if (this.checkEntryTimeout(anomaly)) {
+        console.log(`⏰ ${symbol} - Таймаут подтверждения входа, удаляем из watchlist`);
+        this.pendingAnomalies.delete(symbol);
+        await this.savePendingAnomalies();
+        
+        // Отписаться от WebSocket потока
+        if (this.wsProvider) {
+          this.wsProvider.unsubscribeFromKline(symbol.replace('/USDT', ''));
+        }
+      } else {
+        console.log(`⏳ ${symbol} - Ожидание выполнения условий...`);
+      }
     }
   }
 
@@ -234,12 +288,9 @@ class VirtualTradingSystemWebSocket extends VirtualTradingBaseService {
    * Проверить таймаут watchlist (WebSocket специфика)
    */
   checkWatchlistTimeout(symbol, anomaly) {
-    const watchlistTime = new Date(anomaly.watchlistTime || anomaly.anomalyTime);
-    const timeInWatchlist = Date.now() - watchlistTime.getTime();
-    const minutesInWatchlist = Math.floor(timeInWatchlist / (15 * 60 * 1000));
-    
-    if (minutesInWatchlist >= this.config.anomalyCooldown) {
-      console.log(`⏰ ${symbol} в watchlist слишком долго (${minutesInWatchlist} TF), удаляем`);
+    // Используем метод базового класса для проверки таймаута
+    if (this.checkEntryTimeout(anomaly)) {
+      console.log(`⏰ ${symbol} - Таймаут подтверждения входа (6 TF), удаляем из watchlist`);
       
       // Удалить из watchlist
       this.pendingAnomalies.delete(symbol);

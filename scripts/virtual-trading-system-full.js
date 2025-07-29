@@ -225,12 +225,14 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
   }
 
   /**
-   * Проверить подтверждение входа для WebSocket (адаптированная логика из старой системы)
+   * Проверить подтверждение входа для WebSocket (новая логика с этапами)
    */
   async checkEntryConfirmationWebSocket(symbol, anomaly, currentCandle) {
     const currentPrice = currentCandle.close;
-    const anomalyPrice = anomaly.anomalyPrice;
-    const tradeType = anomaly.tradeType;
+    
+    console.log(`🔍 [CONFIRMATION] Проверка подтверждения входа для ${symbol}:`);
+    console.log(`   💰 Текущая цена: $${currentPrice}`);
+    console.log(`   📊 Аномалия: ${anomaly.tradeType} по $${anomaly.anomalyPrice}`);
     
     console.log(`🔍 [CONFIRMATION] Проверка подтверждения входа для ${symbol}:`);
     console.log(`   💰 Текущая цена: $${currentPrice}`);

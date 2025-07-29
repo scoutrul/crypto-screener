@@ -22,7 +22,10 @@ class VirtualTradingBaseService {
       takeProfitPercent: 0.03, // 3%
       breakEvenPercent: 0.20, // 20% для безубытка
       anomalyCooldown: 4, // 4 TF (1 час) без повторных аномалий
-      entryConfirmationTFs: 2, // 2 TF для подтверждения точки входа
+      entryConfirmationTFs: 6, // 6 TF для подтверждения точки входа (новое требование)
+      consolidationThreshold: 0.02, // 2% для проверки консолидации
+      entryLevelPercent: 0.01, // 1% для уровня входа
+      cancelLevelPercent: 0.01, // 1% для уровня отмены
       ...config
     };
 
@@ -216,7 +219,11 @@ class VirtualTradingBaseService {
           historicalPrice: anomaly.historicalPrice,
           anomalyId: anomaly.anomalyId,
           watchlistTime: anomaly.watchlistTime,
-          currentVolume: anomaly.currentVolume || null // Добавляем поддержку currentVolume
+          currentVolume: anomaly.currentVolume || null, // Добавляем поддержку currentVolume
+          entryLevel: anomaly.entryLevel || null, // Уровень входа
+          cancelLevel: anomaly.cancelLevel || null, // Уровень отмены
+          isConsolidated: anomaly.isConsolidated || false, // Флаг консолидации
+          closePrice: anomaly.closePrice || null // Цена закрытия аномальной свечи
         });
       });
       console.log(`📊 Загружено ${this.pendingAnomalies.size} pending anomalies`);
@@ -339,9 +346,91 @@ class VirtualTradingBaseService {
   }
 
   /**
+   * Проверить консолидацию свечи (общая логика)
+   * Этап 2: подтверждение консолидации
+   */
+  checkConsolidation(candle) {
+    const high = candle[2]; // High
+    const low = candle[3];  // Low
+    const consolidationRange = (high - low) / low;
+    
+    console.log(`🔍 Проверка консолидации: High=${high}, Low=${low}, Range=${(consolidationRange * 100).toFixed(2)}%`);
+    
+    // Если разница между High и Low больше 2%, то консолидация не подтвердилась
+    return consolidationRange < this.config.consolidationThreshold;
+  }
+
+  /**
+   * Рассчитать уровни входа и отмены (общая логика)
+   * Этап 3: определение сетапа и триггеров
+   */
+  calculateEntryLevels(closePrice, tradeType) {
+    let entryLevel, cancelLevel;
+    
+    if (tradeType === 'Long') {
+      entryLevel = closePrice * (1 + this.config.entryLevelPercent);
+      cancelLevel = closePrice * (1 - this.config.cancelLevelPercent);
+    } else { // Short
+      entryLevel = closePrice * (1 - this.config.entryLevelPercent);
+      cancelLevel = closePrice * (1 + this.config.cancelLevelPercent);
+    }
+    
+    console.log(`📊 Уровни для ${tradeType}:`);
+    console.log(`   🎯 Вход: $${entryLevel.toFixed(6)}`);
+    console.log(`   ❌ Отмена: $${cancelLevel.toFixed(6)}`);
+    
+    return { entryLevel, cancelLevel };
+  }
+
+  /**
+   * Проверить условия входа или отмены (общая логика)
+   * Этап 4: подтверждение точки входа или отмена
+   */
+  checkEntryConditions(currentPrice, entryLevel, cancelLevel, tradeType) {
+    console.log(`🔍 Проверка условий входа для ${tradeType}:`);
+    console.log(`   💰 Текущая цена: $${currentPrice}`);
+    console.log(`   🎯 Уровень входа: $${entryLevel}`);
+    console.log(`   ❌ Уровень отмены: $${cancelLevel}`);
+    
+    if (tradeType === 'Long') {
+      if (currentPrice > entryLevel) {
+        console.log(`✅ Условие входа для Long выполнено!`);
+        return 'entry';
+      } else if (currentPrice < cancelLevel) {
+        console.log(`❌ Условие отмены для Long выполнено!`);
+        return 'cancel';
+      }
+    } else { // Short
+      if (currentPrice < entryLevel) {
+        console.log(`✅ Условие входа для Short выполнено!`);
+        return 'entry';
+      } else if (currentPrice > cancelLevel) {
+        console.log(`❌ Условие отмены для Short выполнено!`);
+        return 'cancel';
+      }
+    }
+    
+    console.log(`⏳ Условия не выполнены, ожидание...`);
+    return 'wait';
+  }
+
+  /**
+   * Проверить таймаут подтверждения входа (общая логика)
+   */
+  checkEntryTimeout(anomaly) {
+    const watchlistTime = new Date(anomaly.watchlistTime || anomaly.anomalyTime);
+    const timeInWatchlist = Date.now() - watchlistTime.getTime();
+    const minutesInWatchlist = Math.floor(timeInWatchlist / (15 * 60 * 1000));
+    
+    console.log(`⏰ Время в watchlist: ${minutesInWatchlist} TF из ${this.config.entryConfirmationTFs}`);
+    
+    return minutesInWatchlist >= this.config.entryConfirmationTFs;
+  }
+
+  /**
    * Создать виртуальную сделку (общая логика)
    */
-  createVirtualTrade(symbol, tradeType, entryPrice, anomalyId = null, currentVolume = null) {
+  createVirtualTrade(symbol, tradeType, entryPrice, anomalyId = null, currentVolume = null, entryLevel = null, cancelLevel = null) {
     const stopLoss = tradeType === 'Long' 
       ? entryPrice * (1 - this.config.stopLossPercent)
       : entryPrice * (1 + this.config.stopLossPercent);
@@ -363,7 +452,9 @@ class VirtualTradingBaseService {
       virtualAmount: this.config.virtualDeposit,
       lastPrice: entryPrice,
       lastUpdateTime: new Date().toISOString(),
-      currentVolume: currentVolume // Добавляем текущий объем свечи
+      currentVolume: currentVolume, // Добавляем текущий объем свечи
+      entryLevel: entryLevel, // Уровень входа для отслеживания
+      cancelLevel: cancelLevel // Уровень отмены для отслеживания
     };
 
     this.activeTrades.set(symbol, trade);
