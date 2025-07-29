@@ -21,7 +21,12 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     super(CONFIG);
     
     // REST API специфичные поля
-    this.exchange = new ccxt.binance({ enableRateLimit: true });
+    this.exchange = new ccxt.binance({ 
+      enableRateLimit: true,
+      options: {
+        defaultType: 'spot' // Явно указываем использование spot API
+      }
+    });
     this.app = null;
     
     // Интервалы для разных потоков (REST API)
@@ -52,8 +57,8 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     await this.loadActiveTrades();
 
     // Установить сервис уведомлений
-    if (this.app) {
-      this.setNotificationService(this.app.getNotificationService());
+    if (this.app && this.app.container) {
+      this.setNotificationService(this.app.container.getNotificationService());
     }
     
     console.log('✅ Система инициализирована');

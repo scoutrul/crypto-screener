@@ -58,13 +58,13 @@ class VirtualTradingBaseService {
    */
   async loadFilteredCoins() {
     try {
-      let filename = path.join(__dirname, '..', '..', 'data', 'binance-coins.json');
+      let filename = path.join(__dirname, '..', '..', '..', 'data', 'binance-coins.json');
       let data;
       try {
         data = await fs.readFile(filename, 'utf8');
         console.log('📊 Загружен список монет, торгующихся на Binance');
       } catch (error) {
-        filename = path.join(__dirname, '..', '..', 'data', 'filtered-coins.json');
+        filename = path.join(__dirname, '..', '..', '..', 'data', 'filtered-coins.json');
         data = await fs.readFile(filename, 'utf8');
         console.log('📊 Загружен общий список монет');
       }
@@ -84,7 +84,7 @@ class VirtualTradingBaseService {
    */
   async loadTradeHistory() {
     try {
-      const filename = path.join(__dirname, '..', '..', 'data', 'trade-history.json');
+      const filename = path.join(__dirname, '..', '..', '..', 'data', 'trade-history.json');
       const data = await fs.readFile(filename, 'utf8');
       this.tradeHistory = JSON.parse(data);
       console.log(`📊 Загружено ${this.tradeHistory.length} исторических сделок`);
@@ -99,7 +99,7 @@ class VirtualTradingBaseService {
    */
   async loadTradingStatistics() {
     try {
-      const filename = path.join(__dirname, '..', '..', 'data', 'trading-statistics.json');
+      const filename = path.join(__dirname, '..', '..', '..', 'data', 'trading-statistics.json');
       const data = await fs.readFile(filename, 'utf8');
       this.tradingStatistics = JSON.parse(data);
       console.log(`📊 Загружена статистика торговли (${this.tradingStatistics.totalTrades} сделок)`);
@@ -132,7 +132,7 @@ class VirtualTradingBaseService {
    */
   async saveTradingStatistics() {
     try {
-      const dataDir = path.join(__dirname, '..', '..', 'data');
+      const dataDir = path.join(__dirname, '..', '..', '..', 'data');
       await fs.mkdir(dataDir, { recursive: true });
       const filename = path.join(dataDir, 'trading-statistics.json');
       
@@ -143,7 +143,7 @@ class VirtualTradingBaseService {
       
       // Автоматически добавить в Git stage
       try {
-        const { stageTradingFiles } = require('../../scripts/git-stage-trading-files.js');
+        const { stageTradingFiles } = require('../../../scripts/git-stage-trading-files.js');
         stageTradingFiles();
       } catch (error) {
         console.log('ℹ️ Git stage не выполнен:', error.message);
@@ -158,14 +158,14 @@ class VirtualTradingBaseService {
    */
   async saveTradeHistory() {
     try {
-      const dataDir = path.join(__dirname, '..', '..', 'data');
+      const dataDir = path.join(__dirname, '..', '..', '..', 'data');
       await fs.mkdir(dataDir, { recursive: true });
       const filename = path.join(dataDir, 'trade-history.json');
       await fs.writeFile(filename, JSON.stringify(this.tradeHistory, null, 2));
       
       // Автоматически добавить в Git stage
       try {
-        const { stageTradingFiles } = require('../../scripts/git-stage-trading-files.js');
+        const { stageTradingFiles } = require('../../../scripts/git-stage-trading-files.js');
         stageTradingFiles();
       } catch (error) {
         console.log('ℹ️ Git stage не выполнен:', error.message);
@@ -180,7 +180,7 @@ class VirtualTradingBaseService {
    */
   async savePendingAnomalies() {
     try {
-      const dataDir = path.join(__dirname, '..', '..', 'data');
+      const dataDir = path.join(__dirname, '..', '..', '..', 'data');
       await fs.mkdir(dataDir, { recursive: true });
       const filename = path.join(dataDir, 'pending-anomalies.json');
       const anomaliesData = Array.from(this.pendingAnomalies.entries()).map(([symbol, anomaly]) => ({
@@ -191,7 +191,7 @@ class VirtualTradingBaseService {
       
       // Автоматически добавить в Git stage
       try {
-        const { stageTradingFiles } = require('../../scripts/git-stage-trading-files.js');
+        const { stageTradingFiles } = require('../../../scripts/git-stage-trading-files.js');
         stageTradingFiles();
       } catch (error) {
         console.log('ℹ️ Git stage не выполнен:', error.message);
@@ -206,7 +206,7 @@ class VirtualTradingBaseService {
    */
   async loadPendingAnomalies() {
     try {
-      const filename = path.join(__dirname, '..', '..', 'data', 'pending-anomalies.json');
+      const filename = path.join(__dirname, '..', '..', '..', 'data', 'pending-anomalies.json');
       const data = await fs.readFile(filename, 'utf8');
       const anomaliesData = JSON.parse(data);
       this.pendingAnomalies.clear();
@@ -238,7 +238,7 @@ class VirtualTradingBaseService {
    */
   async loadActiveTrades() {
     try {
-      const filename = path.join(__dirname, '..', '..', 'data', 'active-trades.json');
+      const filename = path.join(__dirname, '..', '..', '..', 'data', 'active-trades.json');
       const data = await fs.readFile(filename, 'utf8');
       const tradesData = JSON.parse(data);
       this.activeTrades.clear();
@@ -263,7 +263,7 @@ class VirtualTradingBaseService {
    */
   async saveActiveTrades() {
     try {
-      const dataDir = path.join(__dirname, '..', '..', 'data');
+      const dataDir = path.join(__dirname, '..', '..', '..', 'data');
       await fs.mkdir(dataDir, { recursive: true });
       const filename = path.join(dataDir, 'active-trades.json');
       const tradesData = Array.from(this.activeTrades.values());
@@ -271,7 +271,7 @@ class VirtualTradingBaseService {
       
       // Автоматически добавить в Git stage
       try {
-        const { stageTradingFiles } = require('../../scripts/git-stage-trading-files.js');
+        const { stageTradingFiles } = require('../../../scripts/git-stage-trading-files.js');
         stageTradingFiles();
       } catch (error) {
         console.log('ℹ️ Git stage не выполнен:', error.message);

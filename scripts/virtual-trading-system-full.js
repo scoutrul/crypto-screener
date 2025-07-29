@@ -30,7 +30,12 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
     super(CONFIG);
     
     // Full WebSocket специфичные поля
-    this.exchange = new ccxt.binance({ enableRateLimit: true });
+    this.exchange = new ccxt.binance({ 
+      enableRateLimit: true,
+      options: {
+        defaultType: 'spot' // Явно указываем использование spot API
+      }
+    });
     this.app = null;
     
     // WebSocket провайдер
