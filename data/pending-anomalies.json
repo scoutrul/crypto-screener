@@ -1,18 +1,32 @@
 [
   {
-    "symbol": "SUN/USDT",
-    "tradeType": "Short",
-    "anomalyTime": "2025-07-29T08:45:00.000Z",
+    "symbol": "AAVE/USDT",
+    "anomalyId": "AAVE_1753783387379",
+    "tradeType": "Long",
+    "anomalyTime": "2025-07-29T09:45:00.000Z",
+    "watchlistTime": "2025-07-29T10:03:07.379Z",
     "anomalyCandleIndex": 6,
-    "anomalyPrice": 0.0216,
-    "historicalPrice": 0.02126
+    "anomalyPrice": 290.76,
+    "historicalPrice": 292.62250000000006
   },
   {
-    "symbol": "ZEC/USDT",
-    "tradeType": "Short",
-    "anomalyTime": "2025-07-29T08:45:00.000Z",
+    "symbol": "AXS/USDT",
+    "anomalyId": "AXS_1753783417085",
+    "tradeType": "Long",
+    "anomalyTime": "2025-07-29T09:45:00.000Z",
+    "watchlistTime": "2025-07-29T10:03:37.085Z",
     "anomalyCandleIndex": 6,
-    "anomalyPrice": 41.5,
-    "historicalPrice": 41.08083333333334
+    "anomalyPrice": 2.49,
+    "historicalPrice": 2.5050833333333333
+  },
+  {
+    "symbol": "W/USDT",
+    "anomalyId": "W_1753783419588",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T09:45:00.000Z",
+    "watchlistTime": "2025-07-29T10:03:39.588Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.08625,
+    "historicalPrice": 0.08513333333333332
   }
 ]
