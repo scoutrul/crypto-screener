@@ -1,0 +1,124 @@
+{
+  "lastUpdated": "2025-07-29T07:18:27.766Z",
+  "totalTrades": 7,
+  "winningTrades": 3,
+  "losingTrades": 4,
+  "winRate": 42.9,
+  "totalProfit": -0.300649094378453,
+  "averageProfit": -0.04,
+  "bestTrade": {
+    "symbol": "BTC/USDT",
+    "type": "Long",
+    "profitLoss": 3.33,
+    "entryTime": "2025-07-29T08:00:00.000Z"
+  },
+  "worstTrade": {
+    "symbol": "DOT/USDT",
+    "type": "Long",
+    "profitLoss": -2.31,
+    "entryTime": "2025-07-29T12:00:00.000Z"
+  },
+  "longestTrade": {
+    "symbol": "BTC/USDT",
+    "type": "Long",
+    "duration": 9000000,
+    "entryTime": "2025-07-29T08:00:00.000Z"
+  },
+  "shortestTrade": {
+    "symbol": "DOT/USDT",
+    "type": "Long",
+    "duration": 1200000,
+    "entryTime": "2025-07-29T12:00:00.000Z"
+  },
+  "monthlyStats": {},
+  "dailyStats": {},
+  "tradeHistory": [
+    {
+      "id": "BTC/USDT_test1",
+      "symbol": "BTC/USDT",
+      "type": "Long",
+      "entryPrice": 45000,
+      "exitPrice": 46500,
+      "profitLoss": 3.33,
+      "entryTime": "2025-07-29T08:00:00.000Z",
+      "exitTime": "2025-07-29T10:30:00.000Z",
+      "closeReason": "take_profit",
+      "duration": 9000000
+    },
+    {
+      "id": "ETH/USDT_test2",
+      "symbol": "ETH/USDT",
+      "type": "Short",
+      "entryPrice": 2800,
+      "exitPrice": 2750,
+      "profitLoss": 1.79,
+      "entryTime": "2025-07-29T09:00:00.000Z",
+      "exitTime": "2025-07-29T11:15:00.000Z",
+      "closeReason": "take_profit",
+      "duration": 8100000
+    },
+    {
+      "id": "SOL/USDT_test3",
+      "symbol": "SOL/USDT",
+      "type": "Long",
+      "entryPrice": 120,
+      "exitPrice": 118,
+      "profitLoss": -1.67,
+      "entryTime": "2025-07-29T10:00:00.000Z",
+      "exitTime": "2025-07-29T10:45:00.000Z",
+      "closeReason": "stop_loss",
+      "duration": 2700000
+    },
+    {
+      "id": "ADA/USDT_test4",
+      "symbol": "ADA/USDT",
+      "type": "Short",
+      "entryPrice": 0.45,
+      "exitPrice": 0.44,
+      "profitLoss": 2.22,
+      "entryTime": "2025-07-29T11:00:00.000Z",
+      "exitTime": "2025-07-29T12:30:00.000Z",
+      "closeReason": "take_profit",
+      "duration": 5400000
+    },
+    {
+      "id": "DOT/USDT_test5",
+      "symbol": "DOT/USDT",
+      "type": "Long",
+      "entryPrice": 6.5,
+      "exitPrice": 6.35,
+      "profitLoss": -2.31,
+      "entryTime": "2025-07-29T12:00:00.000Z",
+      "exitTime": "2025-07-29T12:20:00.000Z",
+      "closeReason": "stop_loss",
+      "duration": 1200000
+    },
+    {
+      "id": "SUPER/USDT_1753769240865",
+      "symbol": "SUPER/USDT",
+      "type": "Short",
+      "entryPrice": 0.8512500000000001,
+      "exitPrice": 0.86825,
+      "profitLoss": -1.9970631424375804,
+      "entryTime": "2025-07-29T06:07:20.866Z",
+      "exitTime": "2025-07-29T07:18:26.670Z",
+      "closeReason": "stop_loss",
+      "duration": 4265804
+    },
+    {
+      "id": "LDO/USDT_1753769247768",
+      "symbol": "LDO/USDT",
+      "type": "Short",
+      "entryPrice": 1.0819999999999999,
+      "exitPrice": 1.1,
+      "profitLoss": -1.6635859519408724,
+      "entryTime": "2025-07-29T06:07:27.768Z",
+      "exitTime": "2025-07-29T07:18:27.765Z",
+      "closeReason": "stop_loss",
+      "duration": 4259997
+    }
+  ],
+  "systemStartTime": "2025-07-29T08:00:00.000Z",
+  "totalDaysRunning": 0,
+  "averageTradesPerDay": 0
+}

@@ -145,11 +145,14 @@ class NotificationService {
     try {
       const startupTime = new Date().toLocaleString('ru-RU');
       
-      await this.sendNotification(
-        'Система запущена',
-        `Crypto Screener успешно запущен в ${startupTime}`,
-        'success'
-      );
+      // Отключено отправка уведомления о запуске в Telegram
+      // await this.sendNotification(
+      //   'Система запущена',
+      //   `Crypto Screener успешно запущен в ${startupTime}`,
+      //   'success'
+      // );
+      
+      console.log(`🚀 Система запущена в ${startupTime} (уведомление в Telegram отключено)`);
       
     } catch (error) {
       console.error('Error sending startup notification:', error.message);

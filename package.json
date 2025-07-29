@@ -21,7 +21,8 @@
     "monitor:signals": "node scripts/trade-signals-only.js",
     "monitor:virtual": "node scripts/virtual-trading-system.js",
     "stats:view": "node scripts/view-statistics.js",
-    "test:anomaly": "node scripts/test-anomaly-logic.js",
+    "stats:extended": "node scripts/view-extended-statistics.js",
+    "status:view": "node scripts/view-system-status.js",
     "filter:binance": "node scripts/filter-binance-coins.js"
   },
   "keywords": [

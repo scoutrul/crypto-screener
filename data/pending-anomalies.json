@@ -1,0 +1,166 @@
+[
+  {
+    "symbol": "TIA/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T05:45:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 1.9495,
+    "historicalPrice": 1.90575
+  },
+  {
+    "symbol": "THETA/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T05:45:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.866,
+    "historicalPrice": 0.8561666666666666
+  },
+  {
+    "symbol": "RAY/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T05:45:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 3.157,
+    "historicalPrice": 3.1134166666666663
+  },
+  {
+    "symbol": "PYTH/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T05:45:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.13015,
+    "historicalPrice": 0.128
+  },
+  {
+    "symbol": "SAND/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T05:45:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.3013,
+    "historicalPrice": 0.299
+  },
+  {
+    "symbol": "STRK/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T05:45:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.13065,
+    "historicalPrice": 0.12810833333333332
+  },
+  {
+    "symbol": "EGLD/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T05:45:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 15.745000000000001,
+    "historicalPrice": 15.591666666666667
+  },
+  {
+    "symbol": "NEO/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T05:45:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 6.495,
+    "historicalPrice": 6.403333333333333
+  },
+  {
+    "symbol": "SUN/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T05:45:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.02093,
+    "historicalPrice": 0.020634166666666665
+  },
+  {
+    "symbol": "TRX/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T06:00:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.3295,
+    "historicalPrice": 0.32769166666666666
+  },
+  {
+    "symbol": "BCH/USDT",
+    "tradeType": "Long",
+    "anomalyTime": "2025-07-29T06:00:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 578.15,
+    "historicalPrice": 581.3000000000001
+  },
+  {
+    "symbol": "JASMY/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T06:00:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.016665,
+    "historicalPrice": 0.01637166666666667
+  },
+  {
+    "symbol": "VET/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T06:15:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.025135,
+    "historicalPrice": 0.02486833333333333
+  },
+  {
+    "symbol": "KAIA/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T06:15:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.1617,
+    "historicalPrice": 0.160525
+  },
+  {
+    "symbol": "SEI/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T06:30:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.3315,
+    "historicalPrice": 0.325575
+  },
+  {
+    "symbol": "STX/USDT",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T06:45:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.8015000000000001,
+    "historicalPrice": 0.7933333333333334
+  },
+  {
+    "symbol": "IOTA/USDT",
+    "anomalyId": "IOTA_1753773530607",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T07:00:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.2079,
+    "historicalPrice": 0.20581666666666665
+  },
+  {
+    "symbol": "RUNE/USDT",
+    "anomalyId": "RUNE_1753773535276",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T07:00:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 1.4475,
+    "historicalPrice": 1.4349166666666668
+  },
+  {
+    "symbol": "APE/USDT",
+    "anomalyId": "APE_1753773535684",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T07:00:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.62555,
+    "historicalPrice": 0.6214583333333333
+  },
+  {
+    "symbol": "GRT/USDT",
+    "anomalyId": "GRT_1753774426667",
+    "tradeType": "Short",
+    "anomalyTime": "2025-07-29T07:15:00.000Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.1055,
+    "historicalPrice": 0.10441666666666666
+  }
+]
