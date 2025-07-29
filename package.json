@@ -26,7 +26,10 @@
     "stats:extended": "node scripts/view-extended-statistics.js",
     "test:websocket-system": "node scripts/test-websocket-system.js",
     "status:view": "node scripts/view-system-status.js",
-    "filter:binance": "node scripts/filter-binance-coins.js"
+    "filter:binance": "node scripts/filter-binance-coins.js",
+    "git:stage-trading": "node scripts/git-stage-trading-files.js stage",
+    "git:check-trading": "node scripts/git-stage-trading-files.js check",
+    "git:auto-trading": "node scripts/git-stage-trading-files.js auto"
   },
   "keywords": [
     "crypto",

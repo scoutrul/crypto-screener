@@ -133,6 +133,14 @@ class VirtualTradingSystem {
       this.updateTradingStatistics();
       
       await fs.writeFile(filename, JSON.stringify(this.tradingStatistics, null, 2));
+      
+      // Автоматически добавить в Git stage
+      try {
+        const { stageTradingFiles } = require('./git-stage-trading-files.js');
+        stageTradingFiles();
+      } catch (error) {
+        console.log('ℹ️ Git stage не выполнен:', error.message);
+      }
     } catch (error) {
       console.error('❌ Ошибка сохранения статистики торговли:', error.message);
     }
@@ -147,6 +155,14 @@ class VirtualTradingSystem {
       await fs.mkdir(dataDir, { recursive: true });
       const filename = path.join(dataDir, 'trade-history.json');
       await fs.writeFile(filename, JSON.stringify(this.tradeHistory, null, 2));
+      
+      // Автоматически добавить в Git stage
+      try {
+        const { stageTradingFiles } = require('./git-stage-trading-files.js');
+        stageTradingFiles();
+      } catch (error) {
+        console.log('ℹ️ Git stage не выполнен:', error.message);
+      }
     } catch (error) {
       console.error('❌ Ошибка сохранения истории сделок:', error.message);
     }
@@ -165,6 +181,14 @@ class VirtualTradingSystem {
         ...anomaly
       }));
       await fs.writeFile(filename, JSON.stringify(anomaliesData, null, 2));
+      
+      // Автоматически добавить в Git stage
+      try {
+        const { stageTradingFiles } = require('./git-stage-trading-files.js');
+        stageTradingFiles();
+      } catch (error) {
+        console.log('ℹ️ Git stage не выполнен:', error.message);
+      }
     } catch (error) {
       console.error('❌ Ошибка сохранения pending anomalies:', error.message);
     }
@@ -231,6 +255,14 @@ class VirtualTradingSystem {
       const filename = path.join(dataDir, 'active-trades.json');
       const tradesData = Array.from(this.activeTrades.values());
       await fs.writeFile(filename, JSON.stringify(tradesData, null, 2));
+      
+      // Автоматически добавить в Git stage
+      try {
+        const { stageTradingFiles } = require('./git-stage-trading-files.js');
+        stageTradingFiles();
+      } catch (error) {
+        console.log('ℹ️ Git stage не выполнен:', error.message);
+      }
     } catch (error) {
       console.error('❌ Ошибка сохранения активных сделок:', error.message);
     }

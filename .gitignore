@@ -47,4 +47,11 @@ coverage/
 
 # Temporary files
 *.tmp
-*.temp 
+*.temp
+
+# Data files - но исключаем важные файлы торговой системы
+data/*.json
+!data/active-trades.json
+!data/pending-anomalies.json
+!data/trade-history.json
+!data/trading-statistics.json 
