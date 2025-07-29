@@ -1,16 +1,30 @@
 [
   {
-    "id": "CRV/USDT_1753777821788",
-    "anomalyId": "CRV_1753777699738",
-    "symbol": "CRV/USDT",
-    "type": "Short",
-    "entryPrice": 1.03025,
-    "stopLoss": 1.0405525000000002,
-    "takeProfit": 0.9993425000000001,
-    "entryTime": "2025-07-29T08:30:21.788Z",
+    "id": "ZEC/USDT_1753807911266",
+    "anomalyId": "ZEC_1753806801064",
+    "symbol": "ZEC/USDT",
+    "type": "Long",
+    "entryPrice": 40.245000000000005,
+    "stopLoss": 39.84255,
+    "takeProfit": 41.45235,
+    "entryTime": "2025-07-29T16:51:51.266Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 1.0202499999999999,
-    "lastUpdateTime": "2025-07-29T10:11:13.432Z"
+    "lastPrice": 40.375,
+    "lastUpdateTime": "2025-07-29T17:07:22.248Z"
+  },
+  {
+    "id": "S/USDT_1753808661803",
+    "anomalyId": "S_1753807692921",
+    "symbol": "S/USDT",
+    "type": "Long",
+    "entryPrice": 0.3054,
+    "stopLoss": 0.302346,
+    "takeProfit": 0.314562,
+    "entryTime": "2025-07-29T17:04:21.803Z",
+    "status": "open",
+    "virtualAmount": 1000,
+    "lastPrice": 0.30505000000000004,
+    "lastUpdateTime": "2025-07-29T17:07:22.906Z"
   }
 ]

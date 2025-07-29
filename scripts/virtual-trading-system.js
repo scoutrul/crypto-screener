@@ -185,7 +185,8 @@ class VirtualTradingSystem {
           anomalyTime: anomaly.anomalyTime,
           anomalyCandleIndex: anomaly.anomalyCandleIndex,
           anomalyPrice: anomaly.anomalyPrice,
-          historicalPrice: anomaly.historicalPrice
+          historicalPrice: anomaly.historicalPrice,
+          currentVolume: anomaly.currentVolume || null // Добавляем поддержку currentVolume
         });
       });
       console.log(`📊 Загружено ${this.pendingAnomalies.size} pending anomalies`);
@@ -371,7 +372,7 @@ class VirtualTradingSystem {
   /**
    * Создать виртуальную сделку
    */
-  createVirtualTrade(symbol, tradeType, entryPrice, anomalyId = null) {
+  createVirtualTrade(symbol, tradeType, entryPrice, anomalyId = null, currentVolume = null) {
     const stopLoss = tradeType === 'Long' 
       ? entryPrice * (1 - CONFIG.stopLossPercent)
       : entryPrice * (1 + CONFIG.stopLossPercent);
@@ -392,7 +393,8 @@ class VirtualTradingSystem {
       status: 'open',
       virtualAmount: CONFIG.virtualDeposit,
       lastPrice: entryPrice,
-      lastUpdateTime: new Date().toISOString()
+      lastUpdateTime: new Date().toISOString(),
+      currentVolume: currentVolume // Добавляем текущий объем свечи
     };
 
     this.activeTrades.set(symbol, trade);
@@ -514,7 +516,8 @@ class VirtualTradingSystem {
           
           // Создать виртуальную сделку
           const currentPrice = this.calculateAveragePrice([candles[candles.length - 1]]);
-          const trade = this.createVirtualTrade(symbol, anomaly.tradeType, currentPrice, anomaly.anomalyId);
+          const currentVolume = candles[candles.length - 1][5]; // Объем текущей свечи
+          const trade = this.createVirtualTrade(symbol, anomaly.tradeType, currentPrice, anomaly.anomalyId, currentVolume);
           
           // Установить cooldown
           this.setAnomalyCooldown(symbol);
@@ -570,10 +573,12 @@ class VirtualTradingSystem {
         }
 
         const currentPrice = this.calculateAveragePrice(candles);
+        const currentVolume = candles[0][5]; // Объем текущей свечи
         
-        // Обновить последнюю цену и время
+        // Обновить последнюю цену, время и объем
         trade.lastPrice = currentPrice;
         trade.lastUpdateTime = new Date().toISOString();
+        trade.currentVolume = currentVolume; // Обновляем текущий объем
 
         // Рассчитать текущий P&L
         let currentProfitLoss = 0;
@@ -940,7 +945,8 @@ class VirtualTradingSystem {
         watchlistTime: new Date().toISOString(), // Время добавления в watchlist
         anomalyCandleIndex: candles.length - 2,
         anomalyPrice: anomalyPrice,
-        historicalPrice: avgHistoricalPrice
+        historicalPrice: avgHistoricalPrice,
+        currentVolume: anomalyVolume // Добавляем текущий объем свечи
       });
       
       console.log(`📝 Аномалия ${symbol} добавлена в pending (${tradeType})`);

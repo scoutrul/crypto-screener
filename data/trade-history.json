@@ -1,1 +1,21 @@
-[]
+[
+  {
+    "id": "CRV/USDT_1753777821788",
+    "anomalyId": "CRV_1753777699738",
+    "symbol": "CRV/USDT",
+    "type": "Short",
+    "entryPrice": 1.03025,
+    "stopLoss": 1.0405525000000002,
+    "takeProfit": 0.9993425000000001,
+    "entryTime": "2025-07-29T08:30:21.788Z",
+    "status": "closed",
+    "virtualAmount": 1000,
+    "lastPrice": 0.96025,
+    "lastUpdateTime": "2025-07-29T15:07:47.548Z",
+    "exitPrice": 0.96025,
+    "exitTime": "2025-07-29T15:07:47.548Z",
+    "closeReason": "take_profit",
+    "profitLoss": 6.794467362290711,
+    "duration": 23845760
+  }
+]

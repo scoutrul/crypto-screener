@@ -220,7 +220,8 @@ class VirtualTradingSystemFull {
       console.log(`✅ ${symbol} - Подтверждение входа! Изменение: ${priceChange.toFixed(2)}%`);
       
       // Создать сделку (используем метод из старой системы)
-      const trade = this.createVirtualTrade(symbol, tradeType, currentPrice, anomaly.anomalyId);
+      const currentVolume = currentCandle[5]; // Объем текущей свечи
+      const trade = this.createVirtualTrade(symbol, tradeType, currentPrice, anomaly.anomalyId, currentVolume);
       this.activeTrades.set(symbol, trade);
       
       // Удалить из watchlist
@@ -602,7 +603,7 @@ class VirtualTradingSystemFull {
   /**
    * Создать виртуальную сделку (из старой системы)
    */
-  createVirtualTrade(symbol, tradeType, entryPrice, anomalyId = null) {
+  createVirtualTrade(symbol, tradeType, entryPrice, anomalyId = null, currentVolume = null) {
     const stopLoss = tradeType === 'Long' 
       ? entryPrice * (1 - CONFIG.stopLossPercent)
       : entryPrice * (1 + CONFIG.stopLossPercent);
@@ -623,7 +624,8 @@ class VirtualTradingSystemFull {
       status: 'open',
       virtualAmount: CONFIG.virtualDeposit,
       lastPrice: entryPrice,
-      lastUpdateTime: new Date().toISOString()
+      lastUpdateTime: new Date().toISOString(),
+      currentVolume: currentVolume // Добавляем текущий объем свечи
     };
 
     this.activeTrades.set(symbol, trade);

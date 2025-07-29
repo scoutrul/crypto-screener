@@ -1,19 +1,52 @@
 {
-  "lastUpdated": "2025-07-29T11:30:00.000Z",
-  "totalTrades": 0,
-  "winningTrades": 0,
+  "lastUpdated": "2025-07-29T15:07:47.550Z",
+  "totalTrades": 1,
+  "winningTrades": 1,
   "losingTrades": 0,
-  "winRate": 0,
-  "totalProfit": 0,
-  "averageProfit": 0,
-  "bestTrade": null,
-  "worstTrade": null,
-  "longestTrade": null,
-  "shortestTrade": null,
+  "winRate": 100,
+  "totalProfit": 6.794467362290711,
+  "averageProfit": 6.79,
+  "bestTrade": {
+    "symbol": "CRV/USDT",
+    "type": "Short",
+    "profitLoss": 6.794467362290711,
+    "entryTime": "2025-07-29T08:30:21.788Z"
+  },
+  "worstTrade": {
+    "symbol": "CRV/USDT",
+    "type": "Short",
+    "profitLoss": 6.794467362290711,
+    "entryTime": "2025-07-29T08:30:21.788Z"
+  },
+  "longestTrade": {
+    "symbol": "CRV/USDT",
+    "type": "Short",
+    "duration": 23845760,
+    "entryTime": "2025-07-29T08:30:21.788Z"
+  },
+  "shortestTrade": {
+    "symbol": "CRV/USDT",
+    "type": "Short",
+    "duration": 23845760,
+    "entryTime": "2025-07-29T08:30:21.788Z"
+  },
   "monthlyStats": {},
   "dailyStats": {},
-  "tradeHistory": [],
+  "tradeHistory": [
+    {
+      "id": "CRV/USDT_1753777821788",
+      "symbol": "CRV/USDT",
+      "type": "Short",
+      "entryPrice": 1.03025,
+      "exitPrice": 0.96025,
+      "profitLoss": 6.794467362290711,
+      "entryTime": "2025-07-29T08:30:21.788Z",
+      "exitTime": "2025-07-29T15:07:47.548Z",
+      "closeReason": "take_profit",
+      "duration": 23845760
+    }
+  ],
   "systemStartTime": "2025-07-29T11:30:00.000Z",
-  "totalDaysRunning": 0,
-  "averageTradesPerDay": 0
+  "totalDaysRunning": 1,
+  "averageTradesPerDay": 1
 }
