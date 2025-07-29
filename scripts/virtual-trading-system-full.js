@@ -84,11 +84,11 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
     this.wsProvider = new BinanceWebSocketProvider();
     
     // Установить обработчики событий
-    this.wsProvider.onConnect(() => {
+    this.wsProvider.onConnect(async () => {
       console.log('🎉 WebSocket подключен!');
       this.wsConnected = true;
-      this.subscribeToWatchlistStreams();
-      this.subscribeToTradeListStreams();
+      await this.subscribeToWatchlistStreams();
+      await this.subscribeToTradeListStreams();
     });
     
     this.wsProvider.onDisconnect((code, reason) => {
@@ -107,14 +107,21 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
   /**
    * Подписаться на потоки для watchlist (Full WebSocket специфика)
    */
-  subscribeToWatchlistStreams() {
-    if (!this.wsConnected || this.pendingAnomalies.size === 0) {
+  async subscribeToWatchlistStreams() {
+    if (!this.wsConnected) {
+      console.log('⚠️ [WS] WebSocket не подключен, пропускаем подписку на watchlist');
+      return;
+    }
+    
+    if (this.pendingAnomalies.size === 0) {
+      console.log('📋 [WS] Нет pending anomalies для подписки на watchlist');
       return;
     }
     
     const streams = [];
     
     this.pendingAnomalies.forEach((anomaly, symbol) => {
+      console.log(`📡 [WS] Подготовка подписки на watchlist для ${symbol}`);
       streams.push({
         symbol: symbol.replace('/USDT', ''),
         interval: this.config.websocketIntervals.watchlist,
@@ -123,22 +130,30 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
     });
     
     if (streams.length > 0) {
-      this.wsProvider.subscribeToMultipleStreams(streams);
-      console.log(`📡 Подписка на ${streams.length} потоков watchlist`);
+      console.log(`📡 [WS] Подписка на ${streams.length} потоков watchlist:`, streams.map(s => s.symbol));
+      await this.wsProvider.subscribeToMultipleStreams(streams);
+      console.log(`📡 [WS] Подписка на ${streams.length} потоков watchlist завершена`);
     }
   }
 
   /**
    * Подписаться на потоки для trade list (Full WebSocket специфика)
    */
-  subscribeToTradeListStreams() {
-    if (!this.wsConnected || this.activeTrades.size === 0) {
+  async subscribeToTradeListStreams() {
+    if (!this.wsConnected) {
+      console.log('⚠️ [WS] WebSocket не подключен, пропускаем подписку на trade list');
+      return;
+    }
+    
+    if (this.activeTrades.size === 0) {
+      console.log('💰 [WS] Нет активных сделок для подписки на trade list');
       return;
     }
     
     const streams = [];
     
     this.activeTrades.forEach((trade, symbol) => {
+      console.log(`📡 [WS] Подготовка подписки на trade list для ${symbol}`);
       streams.push({
         symbol: symbol.replace('/USDT', ''),
         interval: this.config.websocketIntervals.tradeList,
@@ -147,8 +162,9 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
     });
     
     if (streams.length > 0) {
-      this.wsProvider.subscribeToMultipleStreams(streams);
-      console.log(`📡 Подписка на ${streams.length} потоков trade list`);
+      console.log(`📡 [WS] Подписка на ${streams.length} потоков trade list:`, streams.map(s => s.symbol));
+      await this.wsProvider.subscribeToMultipleStreams(streams);
+      console.log(`📡 [WS] Подписка на ${streams.length} потоков trade list завершена`);
     }
   }
 
@@ -160,16 +176,24 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
     const anomaly = this.pendingAnomalies.get(fullSymbol);
     
     if (!anomaly) {
+      console.log(`⚠️ [WATCHLIST] ${fullSymbol} - Аномалия не найдена в pending anomalies`);
       return;
     }
     
-    console.log(`📊 [WATCHLIST] ${fullSymbol} - Новая свеча: $${candle.close}`);
+    console.log(`📊 [WATCHLIST] ${fullSymbol} - Обновление цены: $${candle.close}`);
+    
+    // Обновить время последнего обновления в аномалии
+    anomaly.lastUpdateTime = new Date().toISOString();
+    anomaly.lastPrice = candle.close;
     
     // Проверить подтверждение входа (используем логику из старой системы)
     this.checkEntryConfirmationWebSocket(fullSymbol, anomaly, candle);
     
     // Проверить таймаут watchlist (из старой системы)
     this.checkWatchlistTimeout(fullSymbol, anomaly);
+    
+    // Сохранить обновленные данные
+    this.savePendingAnomalies();
   }
 
   /**
@@ -180,17 +204,24 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
     const trade = this.activeTrades.get(fullSymbol);
     
     if (!trade) {
+      console.log(`⚠️ [TRADE LIST] ${fullSymbol} - Сделка не найдена в active trades`);
       return;
     }
     
-    console.log(`📊 [TRADE LIST] ${fullSymbol} - Новая свеча: $${candle.close}`);
+    console.log(`📊 [TRADE LIST] ${fullSymbol} - Обновление цены: $${candle.close}`);
     
     // Обновить последнюю цену (из старой системы)
+    const oldPrice = trade.lastPrice;
     trade.lastPrice = candle.close;
     trade.lastUpdateTime = new Date().toISOString();
     
+    console.log(`   📊 Изменение цены: $${oldPrice} → $${candle.close}`);
+    
     // Проверить условия закрытия (используем логику из старой системы)
     this.checkTradeExitConditionsWebSocket(trade, candle.close);
+    
+    // Сохранить обновленные данные
+    this.saveActiveTrades();
   }
 
   /**
@@ -201,9 +232,18 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
     const anomalyPrice = anomaly.anomalyPrice;
     const tradeType = anomaly.tradeType;
     
+    console.log(`🔍 [CONFIRMATION] Проверка подтверждения входа для ${symbol}:`);
+    console.log(`   💰 Текущая цена: $${currentPrice}`);
+    console.log(`   📊 Цена аномалии: $${anomalyPrice}`);
+    console.log(`   📈 Тип сделки: ${tradeType}`);
+    
     // Рассчитать изменение цены (логика из старой системы)
     const priceChange = ((currentPrice - anomalyPrice) / anomalyPrice) * 100;
     const expectedDirection = tradeType === 'Long' ? 1 : -1;
+    
+    console.log(`   📊 Изменение цены: ${priceChange.toFixed(2)}%`);
+    console.log(`   🎯 Ожидаемое направление: ${expectedDirection > 0 ? 'вверх' : 'вниз'}`);
+    console.log(`   📏 Порог: ${CONFIG.priceThreshold * 100}%`);
     
     // Проверить направление движения (логика из старой системы)
     if (Math.abs(priceChange) >= this.config.priceThreshold * 100 && 
@@ -241,6 +281,7 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
       
     } else {
       console.log(`⏳ ${symbol} - Ожидание подтверждения. Изменение: ${priceChange.toFixed(2)}%`);
+      console.log(`   ❌ Недостаточное изменение или неправильное направление`);
     }
   }
 
