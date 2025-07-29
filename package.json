@@ -17,6 +17,7 @@
     "save:coins": "node scripts/save-filtered-coins.js",
     "save:extended": "node scripts/save-extended-coins.js",
     "filter:binance-pairs": "node scripts/filter-binance-trading-pairs.js",
+    "filter:binance-only": "node scripts/filter-binance-only.js",
     "monitor:anomalies": "node scripts/anomaly-monitor.js",
     "monitor:signals": "node scripts/trade-signals-only.js",
     "monitor:virtual": "node scripts/virtual-trading-system.js",

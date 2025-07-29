@@ -123,9 +123,9 @@ async function createSystemStatusMessage() {
     message += `📊 ТОРГОВАЯ СТАТИСТИКА:\n`;
     message += `   🎯 Общий винрейт: ${tradingStats.winRate.toFixed(1)}%\n`;
     message += `   💰 Общая прибыль: ${tradingStats.totalProfit.toFixed(2)}%\n`;
-    message += `   📈 Лучшая сделка: +${tradingStats.bestTrade.toFixed(2)}%\n`;
-    message += `   📉 Худшая сделка: ${tradingStats.worstTrade.toFixed(2)}%\n`;
-    message += `   ⏱️ Среднее время: ${formatDuration(Math.round(tradingStats.averageDuration / 1000 / 60))}\n\n`;
+    message += `   📈 Лучшая сделка: +${tradingStats.bestTrade?.profitLoss?.toFixed(2) || '0.00'}%\n`;
+    message += `   📉 Худшая сделка: ${tradingStats.worstTrade?.profitLoss?.toFixed(2) || '0.00'}%\n`;
+    message += `   ⏱️ Среднее время: ${formatDuration(Math.round((tradingStats.averageProfit || 0) / 1000 / 60))}\n\n`;
   } catch (error) {
     message += `📊 ТОРГОВАЯ СТАТИСТИКА: Файл не найден\n\n`;
   }

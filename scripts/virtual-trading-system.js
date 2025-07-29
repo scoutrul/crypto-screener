@@ -465,6 +465,9 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       }
     }
     
+    // Сохранить обновленные данные в файл
+    await this.saveActiveTrades();
+    
     console.log('✅ [ПОТОК 3] Мониторинг trade list завершен');
   }
 
@@ -736,23 +739,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
   async checkAnomalies(coin) {
     const symbol = `${coin.symbol}/USDT`;
     
-    // Проверяем cooldown (используем метод базового класса)
-    if (this.isAnomalyOnCooldown(symbol)) {
-      console.log(`🚫 ${symbol} на cooldown, пропускаем`);
-      return;
-    }
-
-    // Проверяем, есть ли уже активная сделка
-    if (this.activeTrades.has(symbol)) {
-      console.log(`💰 ${symbol} уже в активной сделке, пропускаем`);
-      return;
-    }
-
-    // Проверяем, есть ли уже pending anomaly для этой монеты
-    if (this.pendingAnomalies.has(symbol)) {
-      console.log(`⏳ ${symbol} уже в pending, пропускаем повторное добавление`);
-      return;
-    }
+    // Проверки уже выполнены в runAnomalyCheck, поэтому сразу переходим к анализу
 
     try {
       const since = Date.now() - (this.config.historicalWindow * 15 * 60 * 1000);
@@ -1025,14 +1012,45 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     this.addTaskToQueue(async () => {
       console.log('🔍 [ПОТОК 1] Поиск аномалий среди всех монет (многопоточный)...');
       
+      // Фильтруем монеты, которые уже в активных сделках или pending
+      const availableCoins = this.filteredCoins.filter(coin => {
+        const symbol = `${coin.symbol}/USDT`;
+        const isInActiveTrade = this.activeTrades.has(symbol);
+        const isInPending = this.pendingAnomalies.has(symbol);
+        const isOnCooldown = this.isAnomalyOnCooldown(symbol);
+        
+        if (isInActiveTrade) {
+          console.log(`💰 ${symbol} уже в активной сделке, пропускаем`);
+          return false;
+        }
+        if (isInPending) {
+          console.log(`⏳ ${symbol} уже в pending, пропускаем`);
+          return false;
+        }
+        if (isOnCooldown) {
+          console.log(`🚫 ${symbol} на cooldown, пропускаем`);
+          return false;
+        }
+        
+        return true;
+      });
+      
+      console.log(`📊 Доступно для проверки: ${availableCoins.length}/${this.filteredCoins.length} монет`);
+      
+      if (availableCoins.length === 0) {
+        console.log('✅ Нет доступных монет для проверки');
+        this.lastAnomalyCheck = Date.now();
+        return;
+      }
+      
       const batchSize = 10; // Количество одновременных запросов
       const delayBetweenBatches = 1000; // Задержка между батчами (1 секунда)
       
-      // Разбить монеты на батчи
-      for (let i = 0; i < this.filteredCoins.length; i += batchSize) {
-        const batch = this.filteredCoins.slice(i, i + batchSize);
+      // Разбить отфильтрованные монеты на батчи
+      for (let i = 0; i < availableCoins.length; i += batchSize) {
+        const batch = availableCoins.slice(i, i + batchSize);
         
-        console.log(`📦 Обработка батча ${Math.floor(i / batchSize) + 1}/${Math.ceil(this.filteredCoins.length / batchSize)} (${batch.length} монет)`);
+        console.log(`📦 Обработка батча ${Math.floor(i / batchSize) + 1}/${Math.ceil(availableCoins.length / batchSize)} (${batch.length} монет)`);
         
         // Запустить все запросы в батче параллельно
         const promises = batch.map(async (coin) => {
@@ -1047,7 +1065,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         await Promise.all(promises);
         
         // Задержка между батчами для избежания rate limiting
-        if (i + batchSize < this.filteredCoins.length) {
+        if (i + batchSize < availableCoins.length) {
           await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
         }
       }

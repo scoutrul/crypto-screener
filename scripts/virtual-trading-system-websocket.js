@@ -166,7 +166,7 @@ class VirtualTradingSystemWebSocket extends VirtualTradingBaseService {
   /**
    * Обработка свечи для trade list (WebSocket специфика)
    */
-  handleTradeListKline(symbol, candle) {
+  async handleTradeListKline(symbol, candle) {
     const fullSymbol = `${symbol}/USDT`;
     const trade = this.activeTrades.get(fullSymbol);
     
@@ -182,6 +182,9 @@ class VirtualTradingSystemWebSocket extends VirtualTradingBaseService {
     
     // Проверить условия закрытия
     this.checkTradeExitConditions(trade, candle.close);
+    
+    // Сохранить обновленные данные в файл
+    await this.saveActiveTrades();
   }
 
   /**
