@@ -15,6 +15,7 @@
     "help": "node src/cli.js help",
     "filter:marketcap": "node scripts/filter-by-market-cap-compact.js",
     "save:coins": "node scripts/save-filtered-coins.js",
+    "save:extended": "node scripts/save-extended-coins.js",
     "monitor:anomalies": "node scripts/anomaly-monitor.js",
     "monitor:signals": "node scripts/trade-signals-only.js",
     "monitor:virtual": "node scripts/virtual-trading-system.js",
