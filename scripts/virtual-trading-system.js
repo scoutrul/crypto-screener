@@ -1289,11 +1289,32 @@ class VirtualTradingSystem {
       console.log('   🔍 Поток 1 (аномалии): каждые 5 минут');
       console.log('   ⏳ Поток 2 (watchlist): каждые 30 секунд');
       console.log('   📊 Поток 3 (активные сделки): каждые 30 секунд');
+      console.log('   📤 Статус в Telegram: каждые 2 часа');
+
+      // Отправить начальный статус через 1 минуту после запуска
+      setTimeout(async () => {
+        try {
+          const { sendSystemStatus } = require('./send-system-status.js');
+          await sendSystemStatus();
+        } catch (error) {
+          console.log('ℹ️ Начальная отправка статуса не выполнена:', error.message);
+        }
+      }, 60 * 1000); // 1 минута
 
       // Показывать статистику каждые 30 минут
       setInterval(() => {
         this.showStatistics();
       }, 30 * 60 * 1000);
+
+      // Отправлять статус в Telegram каждые 2 часа
+      setInterval(async () => {
+        try {
+          const { sendSystemStatus } = require('./send-system-status.js');
+          await sendSystemStatus();
+        } catch (error) {
+          console.log('ℹ️ Автоматическая отправка статуса не выполнена:', error.message);
+        }
+      }, 2 * 60 * 60 * 1000); // 2 часа
 
     } catch (error) {
       console.error('❌ Ошибка запуска системы:', error.message);

@@ -4,6 +4,7 @@
   "description": "Crypto Screener с чистой архитектурой и DDD",
   "main": "src/app.js",
   "scripts": {
+    "main": "node scripts/virtual-trading-system.js",
     "start": "node src/app.js",
     "dev": "set NODE_ENV=development&& node src/app.js",
     "cli": "node src/cli.js",
@@ -29,7 +30,9 @@
     "filter:binance": "node scripts/filter-binance-coins.js",
     "git:stage-trading": "node scripts/git-stage-trading-files.js stage",
     "git:check-trading": "node scripts/git-stage-trading-files.js check",
-    "git:auto-trading": "node scripts/git-stage-trading-files.js auto"
+    "git:auto-trading": "node scripts/git-stage-trading-files.js auto",
+    "status:send": "node scripts/send-system-status.js send",
+    "status:preview": "node scripts/send-system-status.js preview"
   },
   "keywords": [
     "crypto",

@@ -1,49 +1,13 @@
 [
   {
-    "symbol": "WBETH/USDT",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-29T16:30:00.000Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 4018.51,
-    "historicalPrice": 4042.683333333333,
-    "currentVolume": null
-  },
-  {
-    "symbol": "FLOW/USDT",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-29T16:30:00.000Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 0.39,
-    "historicalPrice": 0.3921666666666667,
-    "currentVolume": null
-  },
-  {
-    "symbol": "RUNE/USDT",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-29T16:30:00.000Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 1.3935,
-    "historicalPrice": 1.4023333333333337,
-    "currentVolume": null
-  },
-  {
-    "symbol": "LTC/USDT",
+    "symbol": "TON/USDT",
+    "anomalyId": "TON_1753812183426",
     "tradeType": "Short",
-    "anomalyTime": "2025-07-29T16:45:00.000Z",
+    "anomalyTime": "2025-07-29T17:45:00.000Z",
+    "watchlistTime": "2025-07-29T18:03:03.426Z",
     "anomalyCandleIndex": 6,
-    "anomalyPrice": 108.385,
-    "historicalPrice": 107.80999999999999,
-    "currentVolume": null
-  },
-  {
-    "symbol": "DEXE/USDT",
-    "anomalyId": "DEXE_1753808945168",
-    "tradeType": "Short",
-    "anomalyTime": "2025-07-29T16:45:00.000Z",
-    "watchlistTime": "2025-07-29T17:09:05.168Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 7.3629999999999995,
-    "historicalPrice": 7.303083333333333,
-    "currentVolume": 8615.22
+    "anomalyPrice": 3.32,
+    "historicalPrice": 3.2861666666666665,
+    "currentVolume": 410068.35
   }
 ]
