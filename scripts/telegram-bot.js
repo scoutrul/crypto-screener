@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const WatchlistStatusSender = require('./send-watchlist-status');
 const { CryptoScreenerApp } = require('../src/app');
+const messageQueue = require('./telegram-message-queue');
 
 /**
  * Telegram бот для управления Crypto Screener
@@ -35,6 +36,9 @@ class CryptoTelegramBot {
         }
       });
       
+      // Инициализировать очередь сообщений
+      messageQueue.setBot(this.bot);
+      
       // Инициализировать приложение
       this.app = new CryptoScreenerApp();
       await this.app.start();
@@ -46,18 +50,20 @@ class CryptoTelegramBot {
       
       // Настроить команды
       this.setupCommands();
-
+      
       // Отправить приветствие в основной чат
       const chatId = process.env.TELEGRAM_CHAT_ID;
       if (chatId) {
         const message = `🤖 Бот запущен и готов к работе!\n\n` +
                         `📋 Доступные команды:\n` +
+                        `💰 /trades - Активные сделки\n` +
                         `📊 /watchlist - Статус watchlist\n` +
-                        `📈 /status - Общий статус системы\n` +
+                        `📈 /stats - Статистика watchlist\n` +
+                        `📋 /status - Общий статус системы\n` +
                         `❓ /help - Справка\n\n` +
                         `💡 Используйте /help для получения подробной информации`;
         try {
-          await this.bot.sendMessage(chatId, message);
+          await messageQueue.addMessage(chatId, message);
         } catch (e) {
           console.error('❌ Не удалось отправить стартовое сообщение в Telegram:', e.message);
         }
@@ -83,12 +89,13 @@ class CryptoTelegramBot {
       const chatId = msg.chat.id;
       const message = `🤖 Добро пожаловать в Crypto Screener Bot!\n\n` +
                      `📋 Доступные команды:\n` +
+                     `💰 /trades - Активные сделки\n` +
                      `📊 /watchlist - Статус watchlist\n` +
                      `📈 /status - Общий статус системы\n` +
                      `❓ /help - Справка\n\n` +
                      `💡 Используйте /help для получения подробной информации`;
       
-      await this.bot.sendMessage(chatId, message);
+      await messageQueue.addMessage(chatId, message);
     });
 
     // Команда /watchlist
@@ -96,7 +103,7 @@ class CryptoTelegramBot {
       const chatId = msg.chat.id;
       
       try {
-        await this.bot.sendMessage(chatId, '📋 Загружаю статус watchlist...');
+        await messageQueue.addMessage(chatId, '📋 Загружаю статус watchlist...');
         
         // Получить статус watchlist
         const anomalies = await this.watchlistSender.loadPendingAnomalies();
@@ -118,7 +125,7 @@ class CryptoTelegramBot {
             );
           }
           
-          await this.bot.sendMessage(chatId, partMessage, { parse_mode: 'HTML' });
+          await messageQueue.addMessage(chatId, partMessage, { parse_mode: 'HTML' });
           
           // Задержка между частями
           if (i < messageParts.length - 1) {
@@ -128,7 +135,81 @@ class CryptoTelegramBot {
         
       } catch (error) {
         console.error('❌ Ошибка отправки watchlist:', error.message);
-        await this.bot.sendMessage(chatId, '❌ Ошибка загрузки статуса watchlist');
+        await messageQueue.addMessage(chatId, '❌ Ошибка загрузки статуса watchlist');
+      }
+    });
+
+    // Команда /trades - активные сделки
+    this.bot.onText(/\/trades/, async (msg) => {
+      const chatId = msg.chat.id;
+      
+      try {
+        await messageQueue.addMessage(chatId, '💰 Загружаю активные сделки...');
+        
+        // Загрузить активные сделки
+        const fs = require('fs').promises;
+        const path = require('path');
+        
+        const activeTradesFile = path.join(__dirname, '..', 'data', 'active-trades.json');
+        const activeTradesData = await fs.readFile(activeTradesFile, 'utf8');
+        const activeTrades = JSON.parse(activeTradesData);
+        
+        if (activeTrades.length === 0) {
+          const message = `💰 АКТИВНЫЕ СДЕЛКИ:\n\n📊 Нет активных сделок`;
+          await messageQueue.addMessage(chatId, message);
+          return;
+        }
+        
+        let message = `💰 АКТИВНЫЕ СДЕЛКИ (${activeTrades.length}):\n\n`;
+        
+        activeTrades.forEach((trade, index) => {
+          const duration = Math.round((Date.now() - new Date(trade.entryTime).getTime()) / 1000 / 60);
+          const emoji = trade.type === 'Long' ? '🟢' : '🔴';
+          
+          // Рассчитать изменение цены
+          const currentPrice = trade.lastPrice || trade.entryPrice;
+          const priceChange = trade.type === 'Long' 
+            ? ((currentPrice - trade.entryPrice) / trade.entryPrice) * 100
+            : ((trade.entryPrice - currentPrice) / trade.entryPrice) * 100;
+          const changeSign = priceChange >= 0 ? '+' : '';
+          const changeEmoji = priceChange >= 0 ? '🟢' : '🔴';
+          
+          message += `${index + 1}. ${trade.symbol} ${emoji} (${trade.type})\n`;
+          message += `   💰 Вход: $${trade.entryPrice.toFixed(6)}\n`;
+          message += `   📈 Текущая: $${currentPrice.toFixed(6)} ${changeEmoji} ${changeSign}${priceChange.toFixed(2)}%\n`;
+          message += `   🛑 Стоп: $${trade.stopLoss.toFixed(6)}\n`;
+          message += `   🎯 Тейк: $${trade.takeProfit.toFixed(6)}\n`;
+          message += `   ⏱️ Время: ${duration} мин назад\n`;
+          message += `   📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease}x` : 'N/A'}\n\n`;
+        });
+        
+        // Разбить на части, если сообщение слишком длинное
+        const messageParts = this.splitMessageForTelegram(message);
+        
+        for (let i = 0; i < messageParts.length; i++) {
+          const part = messageParts[i];
+          const partNumber = i + 1;
+          const totalParts = messageParts.length;
+          
+          let partMessage = part;
+          if (messageParts.length > 1) {
+            partMessage = part.replace(
+              '💰 АКТИВНЫЕ СДЕЛКИ:',
+              `💰 АКТИВНЫЕ СДЕЛКИ (Часть ${partNumber}/${totalParts}):`
+            );
+          }
+          
+          await messageQueue.addMessage(chatId, partMessage);
+          
+          // Задержка между частями
+          if (i < messageParts.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+        
+      } catch (error) {
+        console.error('❌ Ошибка отправки активных сделок:', error.message);
+        await messageQueue.addMessage(chatId, '❌ Ошибка загрузки активных сделок');
       }
     });
 
@@ -137,7 +218,7 @@ class CryptoTelegramBot {
       const chatId = msg.chat.id;
       
       try {
-        await this.bot.sendMessage(chatId, '📊 Загружаю общий статус системы...');
+        await messageQueue.addMessage(chatId, '📊 Загружаю общий статус системы...');
         
         // Здесь можно добавить отправку общего статуса
         const message = `📊 ОБЩИЙ СТАТУС СИСТЕМЫ:\n\n` +
@@ -146,37 +227,119 @@ class CryptoTelegramBot {
                        `💰 Активные сделки: Загружается...\n\n` +
                        `💡 Используйте /watchlist для детального статуса`;
         
-        await this.bot.sendMessage(chatId, message);
+        await messageQueue.addMessage(chatId, message);
         
       } catch (error) {
         console.error('❌ Ошибка отправки статуса:', error.message);
-        await this.bot.sendMessage(chatId, '❌ Ошибка загрузки статуса системы');
+        await messageQueue.addMessage(chatId, '❌ Ошибка загрузки статуса системы');
       }
     });
 
-    // Команда /help
+    // Команда /help - справка
     this.bot.onText(/\/help/, async (msg) => {
       const chatId = msg.chat.id;
-      const message = `❓ СПРАВКА ПО КОМАНДАМ:\n\n` +
-                     `📊 /watchlist - Показать статус watchlist с детальной статистикой по каждой аномалии\n\n` +
-                     `📈 /status - Показать общий статус системы\n\n` +
-                     `💡 Команды:\n` +
-                     `• /start - Начать работу с ботом\n` +
-                     `• /help - Показать эту справку\n\n` +
-                     `📋 Watchlist содержит аномалии, которые ожидают подтверждения для входа в сделку`;
       
-      await this.bot.sendMessage(chatId, message);
+      const message = `🤖 Crypto Screener Bot - Справка\n\n` +
+                      `📋 Доступные команды:\n\n` +
+                      `💰 /trades - Активные сделки\n` +
+                      `📊 /watchlist - Детальный статус watchlist\n` +
+                      `📈 /stats - Статистика watchlist за 24 часа\n` +
+                      `📋 /status - Общий статус системы\n` +
+                      `❓ /help - Эта справка\n\n` +
+                      `💡 Используйте /trades для просмотра текущих активных сделок\n` +
+                      `💡 Используйте /watchlist для получения подробной информации о каждой аномалии\n` +
+                      `💡 Используйте /stats для анализа эффективности watchlist\n` +
+                      `💡 Используйте /status для общего обзора системы`;
+      
+      await messageQueue.addMessage(chatId, message);
+    });
+
+    // Команда /stats - статистика watchlist
+    this.bot.onText(/\/stats/, async (msg) => {
+      const chatId = msg.chat.id;
+      
+      try {
+        await messageQueue.addMessage(chatId, '📊 Загружаю статистику watchlist...');
+        
+        // Импортировать анализатор статистики
+        const WatchlistStatisticsAnalyzer = require('./watchlist-statistics');
+        const analyzer = new WatchlistStatisticsAnalyzer();
+        
+        // Получить статистику за 24 часа
+        await analyzer.loadData();
+        const periodData = analyzer.getPeriodStatistics(24);
+        const detailedStats = analyzer.calculateDetailedStatistics(periodData);
+        const report = analyzer.createReport(periodData, detailedStats);
+        
+        // Разбить на части, если сообщение слишком длинное
+        const messageParts = this.splitMessageForTelegram(report);
+        
+        if (messageParts.length > 1) {
+          for (let i = 0; i < messageParts.length; i++) {
+            const part = messageParts[i];
+            const partNumber = i + 1;
+            const totalParts = messageParts.length;
+            
+            const partMessage = part.replace(
+              '📊 СТАТИСТИКА WATCHLIST ЗА 24ч',
+              `📊 СТАТИСТИКА WATCHLIST ЗА 24ч (Часть ${partNumber}/${totalParts})`
+            );
+            
+            await messageQueue.addMessage(chatId, partMessage, { parse_mode: 'HTML' });
+            
+            // Задержка между частями
+            if (i < messageParts.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+        } else {
+          await messageQueue.addMessage(chatId, report, { parse_mode: 'HTML' });
+        }
+        
+      } catch (error) {
+        console.error('❌ Ошибка отправки статистики:', error.message);
+        await messageQueue.addMessage(chatId, '❌ Ошибка загрузки статистики watchlist');
+      }
     });
 
     // Обработка неизвестных команд
     this.bot.on('message', async (msg) => {
       if (msg.text && !msg.text.startsWith('/')) {
         const chatId = msg.chat.id;
-        await this.bot.sendMessage(chatId, '❓ Используйте /help для получения списка команд');
+        await messageQueue.addMessage(chatId, '❓ Используйте /help для получения списка команд');
       }
     });
 
     console.log('✅ Команды бота настроены');
+  }
+
+  /**
+   * Разбить длинное сообщение на части для Telegram
+   */
+  splitMessageForTelegram(message, maxLength = 4000) {
+    const parts = [];
+    let currentPart = '';
+    
+    const lines = message.split('\n');
+    
+    for (const line of lines) {
+      // Если добавление этой строки превысит лимит
+      if (currentPart.length + line.length + 1 > maxLength) {
+        if (currentPart.trim()) {
+          parts.push(currentPart.trim());
+        }
+        currentPart = line;
+      } else {
+        currentPart += (currentPart ? '\n' : '') + line;
+      }
+    }
+    
+    // Добавить последнюю часть
+    if (currentPart.trim()) {
+      parts.push(currentPart.trim());
+    }
+    
+    return parts;
   }
 
   /**

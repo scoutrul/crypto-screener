@@ -1,6 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const { CryptoScreenerApp } = require('../src/app');
+const messageQueue = require('./telegram-message-queue');
 
 /**
  * Скрипт для отправки статуса watchlist через Telegram
@@ -17,7 +18,19 @@ class WatchlistStatusSender {
     try {
       const filename = path.join(__dirname, '..', 'data', 'pending-anomalies.json');
       const data = await fs.readFile(filename, 'utf8');
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      
+      // Поддержка новой структуры (объект с meta и anomalies) и старой (массив)
+      if (Array.isArray(parsed)) {
+        // Старая структура - массив
+        return parsed;
+      } else if (parsed.anomalies && Array.isArray(parsed.anomalies)) {
+        // Новая структура - объект с anomalies
+        return parsed.anomalies;
+      } else {
+        console.log('📊 Неизвестная структура pending-anomalies.json');
+        return [];
+      }
     } catch (error) {
       console.log('📊 Pending anomalies не найдены');
       return [];
@@ -32,14 +45,20 @@ class WatchlistStatusSender {
     const watchlistTime = new Date(anomaly.watchlistTime);
     const timeInWatchlist = Math.floor((now - watchlistTime) / (1000 * 60)); // минуты
     
+    // Безопасные значения по умолчанию
+    const maxPrice = anomaly.maxPrice || anomaly.anomalyPrice;
+    const minPrice = anomaly.minPrice || anomaly.anomalyPrice;
+    const entryLevel = anomaly.entryLevel || anomaly.anomalyPrice;
+    const cancelLevel = anomaly.cancelLevel || anomaly.anomalyPrice;
+    
     // Рассчитать изменение цены с момента аномалии
-    const priceChange = ((anomaly.maxPrice - anomaly.anomalyPrice) / anomaly.anomalyPrice) * 100;
-    const priceChangeFromMin = ((anomaly.maxPrice - anomaly.minPrice) / anomaly.minPrice) * 100;
+    const priceChange = ((maxPrice - anomaly.anomalyPrice) / anomaly.anomalyPrice) * 100;
+    const priceChangeFromMin = ((maxPrice - minPrice) / minPrice) * 100;
     
     // Рассчитать расстояние до уровней
-    const currentPrice = anomaly.maxPrice; // Используем максимальную цену как текущую
-    const distanceToEntry = ((anomaly.entryLevel - currentPrice) / currentPrice) * 100;
-    const distanceToCancel = ((currentPrice - anomaly.cancelLevel) / currentPrice) * 100;
+    const currentPrice = maxPrice; // Используем максимальную цену как текущую
+    const distanceToEntry = ((entryLevel - currentPrice) / currentPrice) * 100;
+    const distanceToCancel = ((currentPrice - cancelLevel) / currentPrice) * 100;
     
     return {
       timeInWatchlist,
@@ -73,7 +92,7 @@ class WatchlistStatusSender {
       const emoji = anomaly.tradeType === 'Long' ? '🟢' : '🔴';
       
       message += `${emoji} ${symbol} (${anomaly.tradeType})\n`;
-      message += `   📊 Объем: ${anomaly.volumeLeverage}x\n`;
+      message += `   📊 Объем: ${anomaly.volumeLeverage || 'N/A'}x\n`;
       message += `   💰 Аномальная цена: $${anomaly.anomalyPrice.toFixed(6)}\n`;
       message += `   📈 Текущая цена: $${stats.currentPrice.toFixed(6)}\n`;
       message += `   ⏱️ Время в watchlist: ${stats.timeInWatchlist} мин\n`;
@@ -84,7 +103,10 @@ class WatchlistStatusSender {
     });
 
     // Общая статистика
-    const avgLeverage = (anomalies.reduce((sum, a) => sum + a.volumeLeverage, 0) / anomalies.length).toFixed(1);
+    const validLeverages = anomalies.filter(a => a.volumeLeverage).map(a => a.volumeLeverage);
+    const avgLeverage = validLeverages.length > 0 
+      ? (validLeverages.reduce((sum, v) => sum + v, 0) / validLeverages.length).toFixed(1)
+      : 'N/A';
     const avgTimeInWatchlist = (anomalies.reduce((sum, a) => sum + this.calculateAnomalyStats(a).timeInWatchlist, 0) / anomalies.length).toFixed(0);
     
     message += `📊 ОБЩАЯ СТАТИСТИКА:\n`;
@@ -105,8 +127,14 @@ class WatchlistStatusSender {
         await this.app.start();
       }
 
-      const notificationRepository = global.cryptoScreener.notificationRepository;
-      await notificationRepository.sendTelegramMessage(message);
+      // Получить chat ID из переменных окружения
+      const chatId = process.env.TELEGRAM_CHAT_ID;
+      if (!chatId) {
+        console.error('❌ TELEGRAM_CHAT_ID не найден в переменных окружения');
+        return;
+      }
+
+      await messageQueue.addMessage(chatId, message);
       console.log('✅ Статус watchlist отправлен в Telegram');
     } catch (error) {
       console.error('❌ Ошибка отправки в Telegram:', error.message);

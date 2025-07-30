@@ -27,7 +27,19 @@ class DataMonitor {
   async loadInitialData() {
     try {
       const pendingData = await fs.readFile(this.pendingAnomaliesPath, 'utf8');
-      this.lastPendingAnomalies = JSON.parse(pendingData);
+      const parsed = JSON.parse(pendingData);
+      
+      // Поддержка новой структуры (объект с meta и anomalies) и старой (массив)
+      if (Array.isArray(parsed)) {
+        // Старая структура - массив
+        this.lastPendingAnomalies = parsed;
+      } else if (parsed.anomalies && Array.isArray(parsed.anomalies)) {
+        // Новая структура - объект с anomalies
+        this.lastPendingAnomalies = parsed.anomalies;
+      } else {
+        console.log('📊 Неизвестная структура pending-anomalies.json');
+        this.lastPendingAnomalies = [];
+      }
       
       const activeData = await fs.readFile(this.activeTradesPath, 'utf8');
       this.lastActiveTrades = JSON.parse(activeData);
@@ -51,7 +63,17 @@ class DataMonitor {
     try {
       // Проверить pending anomalies
       const pendingData = await fs.readFile(this.pendingAnomaliesPath, 'utf8');
-      const currentPendingAnomalies = JSON.parse(pendingData);
+      const parsed = JSON.parse(pendingData);
+      
+      // Поддержка новой структуры (объект с meta и anomalies) и старой (массив)
+      let currentPendingAnomalies = [];
+      if (Array.isArray(parsed)) {
+        // Старая структура - массив
+        currentPendingAnomalies = parsed;
+      } else if (parsed.anomalies && Array.isArray(parsed.anomalies)) {
+        // Новая структура - объект с anomalies
+        currentPendingAnomalies = parsed.anomalies;
+      }
       
       // Проверить active trades
       const activeData = await fs.readFile(this.activeTradesPath, 'utf8');

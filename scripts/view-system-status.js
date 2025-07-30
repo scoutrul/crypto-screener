@@ -37,11 +37,21 @@ async function viewSystemStatus() {
       const pendingAnomaliesData = await fs.readFile(pendingAnomaliesFile, 'utf8');
       const pendingAnomalies = JSON.parse(pendingAnomaliesData);
       
-      console.log(`⏳ PENDING ANOMALIES (${pendingAnomalies.length}):`);
-      if (pendingAnomalies.length === 0) {
+      // Поддержка новой структуры (объект с meta и anomalies) и старой (массив)
+      let anomalies = [];
+      if (Array.isArray(pendingAnomalies)) {
+        // Старая структура - массив
+        anomalies = pendingAnomalies;
+      } else if (pendingAnomalies.anomalies && Array.isArray(pendingAnomalies.anomalies)) {
+        // Новая структура - объект с anomalies
+        anomalies = pendingAnomalies.anomalies;
+      }
+      
+      console.log(`⏳ PENDING ANOMALIES (${anomalies.length}):`);
+      if (anomalies.length === 0) {
         console.log('   Нет ожидающих аномалий');
       } else {
-        pendingAnomalies.forEach((anomaly, index) => {
+        anomalies.forEach((anomaly, index) => {
           const timeSinceAnomaly = Math.round((Date.now() - new Date(anomaly.anomalyTime).getTime()) / 1000 / 60);
           console.log(`   ${index + 1}. ${anomaly.symbol} (${anomaly.tradeType})`);
           console.log(`      Время аномалии: ${timeSinceAnomaly} мин назад`);

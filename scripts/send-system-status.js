@@ -1,13 +1,11 @@
 /**
- * Скрипт для отправки статуса системы в Telegram
+ * Скрипт для отправки статуса системы через Telegram
  */
 
 const fs = require('fs').promises;
 const path = require('path');
-
-// Импорт зависимостей из чистой архитектуры
-const AppConfig = require('../src/infrastructure/config/AppConfig');
-const TelegramNotificationRepository = require('../src/infrastructure/repositories/TelegramNotificationRepository');
+const { CryptoScreenerApp } = require('../src/app');
+const messageQueue = require('./telegram-message-queue');
 
 /**
  * Форматировать время в читаемый вид
@@ -102,11 +100,21 @@ async function createSystemStatusMessage() {
     const pendingAnomaliesData = await fs.readFile(pendingAnomaliesFile, 'utf8');
     const pendingAnomalies = JSON.parse(pendingAnomaliesData);
     
-    message += `⏳ PENDING ANOMALIES (${pendingAnomalies.length}):\n`;
-    if (pendingAnomalies.length === 0) {
+    // Поддержка новой структуры (объект с meta и anomalies) и старой (массив)
+    let anomalies = [];
+    if (Array.isArray(pendingAnomalies)) {
+      // Старая структура - массив
+      anomalies = pendingAnomalies;
+    } else if (pendingAnomalies.anomalies && Array.isArray(pendingAnomalies.anomalies)) {
+      // Новая структура - объект с anomalies
+      anomalies = pendingAnomalies.anomalies;
+    }
+    
+    message += `⏳ PENDING ANOMALIES (${anomalies.length}):\n`;
+    if (anomalies.length === 0) {
       message += `   Нет ожидающих аномалий\n\n`;
     } else {
-      pendingAnomalies.forEach((anomaly, index) => {
+      anomalies.forEach((anomaly, index) => {
         const timeSinceAnomaly = Math.round((Date.now() - new Date(anomaly.anomalyTime).getTime()) / 1000 / 60);
         const emoji = anomaly.tradeType === 'Long' ? '🟢' : '🔴';
         message += `   ${index + 1}. ${anomaly.symbol} ${emoji} (${anomaly.tradeType})\n`;
@@ -189,10 +197,20 @@ async function createSystemStatusMessage() {
     const activeTradesData = await fs.readFile(activeTradesFile, 'utf8');
     const activeTrades = JSON.parse(activeTradesData);
 
-    const longInWatchlist = pendingAnomalies.filter(a => a.tradeType === 'Long').length;
-    const shortInWatchlist = pendingAnomalies.filter(a => a.tradeType === 'Short').length;
+    // Поддержка новой структуры (объект с meta и anomalies) и старой (массив)
+    let anomalies = [];
+    if (Array.isArray(pendingAnomalies)) {
+      // Старая структура - массив
+      anomalies = pendingAnomalies;
+    } else if (pendingAnomalies.anomalies && Array.isArray(pendingAnomalies.anomalies)) {
+      // Новая структура - объект с anomalies
+      anomalies = pendingAnomalies.anomalies;
+    }
+
+    const longInWatchlist = anomalies.filter(a => a.tradeType === 'Long').length;
+    const shortInWatchlist = anomalies.filter(a => a.tradeType === 'Short').length;
     
-    const volumeLeverages = pendingAnomalies
+    const volumeLeverages = anomalies
       .filter(a => a.volumeLeverage)
       .map(a => a.volumeLeverage);
     
@@ -211,7 +229,7 @@ async function createSystemStatusMessage() {
       : '0.0';
     
     message += `📊 СТАТИСТИКА СИГНАЛОВ:\n`;
-    message += `   📋 В watchlist: ${pendingAnomalies.length} (Long: ${longInWatchlist}, Short: ${shortInWatchlist})\n`;
+    message += `   📋 В watchlist: ${anomalies.length} (Long: ${longInWatchlist}, Short: ${shortInWatchlist})\n`;
     message += `   📊 Средний leverage: ${avgLeverage}x (макс: ${maxLeverage}x)\n`;
     message += `   🎯 Конверсия в сделки: ${conversionRate}% (${tradesFromWatchlist}/${totalActiveTrades})\n`;
     message += `   📈 Всего сделок: ${tradeHistory.length + totalActiveTrades}\n`;
@@ -220,22 +238,49 @@ async function createSystemStatusMessage() {
     message += `📊 СТАТИСТИКА СИГНАЛОВ: Данные недоступны\n\n`;
   }
 
-  // Статистика лидов (если файл существует)
+  // Статистика сигналов
   try {
     const signalStatsFile = path.join(__dirname, '..', 'data', 'signal-statistics.json');
     const signalStatsData = await fs.readFile(signalStatsFile, 'utf8');
     const signalStats = JSON.parse(signalStatsData);
     
+    message += `📊 СТАТИСТИКА СИГНАЛОВ:\n`;
+    message += `   📈 Всего лидов: ${signalStats.totalLeads}\n`;
+    message += `   ✅ Конвертировано в сделки: ${signalStats.convertedToTrade}\n`;
+    message += `   ⏱️ Среднее время жизни лида: ${signalStats.averageLeadLifetimeMinutes} мин\n`;
+    
     if (signalStats.totalLeads > 0) {
       const conversionRate = ((signalStats.convertedToTrade / signalStats.totalLeads) * 100).toFixed(1);
-      message += `📊 СТАТИСТИКА ЛИДОВ:\n`;
-      message += `   📈 Всего лидов: ${signalStats.totalLeads}\n`;
-      message += `   ✅ Конвертировано в сделки: ${signalStats.convertedToTrade}\n`;
-      message += `   ⏱️ Среднее время жизни: ${signalStats.averageLeadLifetimeMinutes} мин\n`;
-      message += `   📊 Конверсия: ${conversionRate}%\n\n`;
+      message += `   📊 Конверсия: ${conversionRate}%\n`;
+    }
+    message += `\n`;
+  } catch (error) {
+    message += `📊 СТАТИСТИКА СИГНАЛОВ: Файл не найден\n\n`;
+  }
+
+  // Статистика watchlist из trading-statistics.json
+  try {
+    const tradingStatsFile = path.join(__dirname, '..', 'data', 'trading-statistics.json');
+    const tradingStatsData = await fs.readFile(tradingStatsFile, 'utf8');
+    const tradingStats = JSON.parse(tradingStatsData);
+    
+    if (tradingStats.watchlistStats) {
+      const ws = tradingStats.watchlistStats;
+      message += `📋 СТАТИСТИКА WATCHLIST:\n`;
+      message += `   📊 Всего обработано: ${ws.totalAnomaliesProcessed}\n`;
+      message += `   📋 Текущих в watchlist: ${ws.currentAnomaliesCount}\n`;
+      message += `   ✅ Конвертировано в сделки: ${ws.convertedToTrades}\n`;
+      message += `   ❌ Удалено из watchlist: ${ws.removedFromWatchlist}\n`;
+      message += `   📊 Средний leverage: ${ws.averageVolumeLeverage}x\n`;
+      message += `   ⏱️ Среднее время в watchlist: ${ws.averageWatchlistTimeMinutes} мин\n`;
+      message += `   🟢 Long: ${ws.longAnomaliesCount} | 🔴 Short: ${ws.shortAnomaliesCount}\n`;
+      message += `   ✅ Консолидированные: ${ws.consolidatedAnomaliesCount} | ⏳ Не консолидированные: ${ws.unconsolidatedAnomaliesCount}\n`;
+      message += `   📈 Конверсия: ${ws.conversionRate}%\n\n`;
+    } else {
+      message += `📋 СТАТИСТИКА WATCHLIST: Не найдена\n\n`;
     }
   } catch (error) {
-    // Файл статистики лидов не найден - это нормально
+    message += `📋 СТАТИСТИКА WATCHLIST: Файл не найден\n\n`;
   }
 
   message += `🔗 Crypto Screener v2.0`;
@@ -244,27 +289,25 @@ async function createSystemStatusMessage() {
 }
 
 /**
- * Отправить статус в Telegram
+ * Отправить статус системы в Telegram
  */
 async function sendSystemStatus() {
   try {
     console.log('📤 Отправка статуса системы в Telegram...');
-
-    // Инициализация зависимостей
-    const config = new AppConfig();
-    const notificationRepository = new TelegramNotificationRepository();
-
-    // Проверка доступности Telegram
-    const isAvailable = await notificationRepository.isAvailable();
-    if (!isAvailable) {
-      console.log('⚠️ Telegram недоступен, отправляем в консоль');
-      const message = await createSystemStatusMessage();
-      console.log(message);
-      return;
-    }
-
+    
+    // Инициализация приложения
+    const app = new CryptoScreenerApp();
+    await app.start();
+    
     // Создание сообщения
     const message = await createSystemStatusMessage();
+    
+    // Получить chat ID из переменных окружения
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+    if (!chatId) {
+      console.error('❌ TELEGRAM_CHAT_ID не найден в переменных окружения');
+      return;
+    }
     
     // Разбить сообщение на части, если оно слишком длинное
     const messageParts = splitMessageForTelegram(message);
@@ -277,13 +320,12 @@ async function sendSystemStatus() {
         const partNumber = i + 1;
         const totalParts = messageParts.length;
         
-        // Добавить номер части к заголовку
         const partMessage = part.replace(
           '📊 СТАТУС СИСТЕМЫ ВИРТУАЛЬНОЙ ТОРГОВЛИ',
           `📊 СТАТУС СИСТЕМЫ ВИРТУАЛЬНОЙ ТОРГОВЛИ (Часть ${partNumber}/${totalParts})`
         );
         
-        await notificationRepository.sendTelegramMessage(partMessage);
+        await messageQueue.addMessage(chatId, partMessage);
         
         // Небольшая задержка между отправками
         if (i < messageParts.length - 1) {
@@ -292,22 +334,12 @@ async function sendSystemStatus() {
       }
     } else {
       // Отправить как одно сообщение
-      await notificationRepository.sendTelegramMessage(message);
+      await messageQueue.addMessage(chatId, message);
     }
     
     console.log('✅ Статус системы отправлен в Telegram');
-
   } catch (error) {
     console.error('❌ Ошибка отправки статуса:', error.message);
-    
-    // Fallback - показать в консоли
-    try {
-      const message = await createSystemStatusMessage();
-      console.log('\n📋 СТАТУС СИСТЕМЫ (консоль):\n');
-      console.log(message);
-    } catch (fallbackError) {
-      console.error('❌ Ошибка создания сообщения:', fallbackError.message);
-    }
   }
 }
 

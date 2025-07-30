@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2025-07-30T15:04:45.251Z",
+  "lastUpdated": "2025-07-30T15:50:24.079Z",
   "totalTrades": 3,
   "winningTrades": 1,
   "losingTrades": 2,
@@ -29,6 +29,29 @@
     "type": "Short",
     "duration": 951468,
     "entryTime": "2025-07-30T14:29:21.994Z"
+  },
+  "watchlistStats": {
+    "sessionStartTime": "2025-07-30T13:45:00.000Z",
+    "lastUpdated": "2025-07-30T15:46:26.052Z",
+    "totalAnomaliesProcessed": 5,
+    "currentAnomaliesCount": 5,
+    "convertedToTrades": 0,
+    "removedFromWatchlist": 0,
+    "averageVolumeLeverage": 11.2,
+    "averageWatchlistTimeMinutes": 72,
+    "longAnomaliesCount": 0,
+    "shortAnomaliesCount": 5,
+    "consolidatedAnomaliesCount": 3,
+    "unconsolidatedAnomaliesCount": 2,
+    "topVolumeLeverages": [
+      15.8,
+      13,
+      9.8,
+      8.9,
+      8.4
+    ],
+    "conversionRate": 0,
+    "sessionDurationMinutes": 121
   },
   "monthlyStats": {},
   "dailyStats": {},

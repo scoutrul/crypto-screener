@@ -3,9 +3,13 @@
  * Наследует общую бизнес-логику из VirtualTradingBaseService
  */
 
+const fs = require('fs').promises;
+const path = require('path');
 const ccxt = require('ccxt');
 const { CryptoScreenerApp } = require('../src/app');
-const { VirtualTradingBaseService } = require('../src/domain/services/VirtualTradingBaseService');
+const VirtualTradingBaseService = require('../src/domain/services/VirtualTradingBaseService');
+const PendingAnomaliesStatsUpdater = require('./update-pending-anomalies-stats');
+const WatchlistStatsSync = require('./sync-watchlist-stats');
 
 // Конфигурация для REST API системы (наследуется из базового класса)
 const CONFIG = {
@@ -45,6 +49,8 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     this.anomalyCheckInterval = null;      // Поток 1: 5 минут
     this.pendingCheckInterval = null;      // Поток 2: 30 секунд  
     this.activeTradesInterval = null;      // Поток 3: 30 секунд
+    this.pendingAnomaliesStatsUpdater = new PendingAnomaliesStatsUpdater();
+    this.watchlistStatsSync = new WatchlistStatsSync();
   }
 
   /**
@@ -267,12 +273,9 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         
         if (!this.checkConsolidation(anomalyCandle)) {
           console.log(`❌ ${symbol} - Консолидация не подтвердилась, удаляем из watchlist`);
-          
           // Записать лид как неудачную консолидацию
           super.addLeadRecord(anomaly, 'consolidation', false);
-          
-          this.pendingAnomalies.delete(symbol);
-          await this.savePendingAnomalies();
+          await this.removeFromWatchlist(symbol, 'consolidation');
           await super.saveSignalStatistics();
           return;
         }
@@ -326,14 +329,13 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         super.addLeadRecord(anomaly, 'entry', true);
         
         // Удалить из watchlist
-        this.pendingAnomalies.delete(symbol);
+        await this.removeFromWatchlist(symbol, 'converted');
         
         // Отправить уведомление (используем метод базового класса)
         await this.sendNewTradeNotification(trade);
         
         // Сохранить данные (используем методы базового класса)
         await this.saveActiveTrades();
-        await this.savePendingAnomalies();
         await super.saveSignalStatistics();
         
       } else if (result === 'cancel') {
@@ -342,8 +344,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         // Записать лид как отмененный
         super.addLeadRecord(anomaly, 'cancel', false);
         
-        this.pendingAnomalies.delete(symbol);
-        await this.savePendingAnomalies();
+        await this.removeFromWatchlist(symbol, 'cancel');
         await super.saveSignalStatistics();
         
       } else {
@@ -354,8 +355,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
           // Записать лид как таймаут
           super.addLeadRecord(anomaly, 'timeout', false);
           
-          this.pendingAnomalies.delete(symbol);
-          await this.savePendingAnomalies();
+          await this.removeFromWatchlist(symbol, 'timeout');
           await super.saveSignalStatistics();
         } else {
           console.log(`⏳ ${symbol} - Ожидание выполнения условий...`);
@@ -870,7 +870,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       // Сохранить аномалию в pending для ожидания подтверждения
       const anomalyTime = new Date(anomalyCandle[0]);
       
-      this.pendingAnomalies.set(symbol, {
+      const anomaly = {
         anomalyId,
         tradeType: tradeType,
         anomalyTime: anomalyTime.toISOString(),
@@ -880,11 +880,22 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         historicalPrice: avgHistoricalPrice,
         currentVolume: anomalyVolume, // Добавляем текущий объем свечи
         volumeLeverage: parseFloat(volumeLeverage) // Добавляем leverage объема
-      });
+      };
       
-      console.log(`📝 Аномалия ${symbol} добавлена в pending (${tradeType})`);
+      // Добавить в watchlist
+      await this.addToWatchlist(anomaly);
       
-      await this.savePendingAnomalies();
+      // Отправить уведомление
+      const message = `🚨 НОВАЯ АНОМАЛИЯ ОБНАРУЖЕНА!\n\n` +
+                      `🪙 ${symbol}\n` +
+                      `📊 Тип: ${tradeType}\n` +
+                      `💰 Цена: $${anomalyPrice.toFixed(6)}\n` +
+                      `📈 Объем: ${volumeLeverage.toFixed(1)}x\n` +
+                      `📈 Изменение цены: ${((anomalyPrice - avgHistoricalPrice) / avgHistoricalPrice * 100).toFixed(2)}%\n` +
+                      `⏰ Время: ${new Date().toLocaleString('ru-RU')}\n\n` +
+                      `📋 Добавлено в watchlist для мониторинга`;
+      
+      await this.notificationService.sendTelegramMessage(message);
 
     } catch (error) {
       console.error(`❌ Ошибка проверки ${symbol}:`, error.message);
@@ -1285,6 +1296,134 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     }
     
     console.log('✅ Система остановлена');
+  }
+
+  /**
+   * Загрузить pending anomalies
+   */
+  async loadPendingAnomalies() {
+    try {
+      const filename = path.join(__dirname, '..', 'data', 'pending-anomalies.json');
+      const data = await fs.readFile(filename, 'utf8');
+      const parsed = JSON.parse(data);
+      
+      // Проверить структуру файла
+      if (parsed.meta && parsed.anomalies) {
+        // Новая структура
+        this.pendingAnomalies = new Map();
+        parsed.anomalies.forEach(anomaly => {
+          this.pendingAnomalies.set(anomaly.symbol, anomaly);
+        });
+        console.log(`📊 Загружено ${this.pendingAnomalies.size} pending anomalies (новая структура)`);
+      } else if (Array.isArray(parsed)) {
+        // Старая структура - конвертировать
+        this.pendingAnomalies = new Map();
+        parsed.forEach(anomaly => {
+          this.pendingAnomalies.set(anomaly.symbol, anomaly);
+        });
+        console.log(`📊 Загружено ${this.pendingAnomalies.size} pending anomalies (конвертировано из старой структуры)`);
+        
+        // Обновить структуру файла
+        await this.savePendingAnomalies();
+      } else {
+        this.pendingAnomalies = new Map();
+        console.log('📊 Pending anomalies не найдены, создаем новый список');
+      }
+    } catch (error) {
+      console.log('📊 Pending anomalies не найдены, создаем новый список');
+      this.pendingAnomalies = new Map();
+    }
+  }
+
+  /**
+   * Сохранить pending anomalies
+   */
+  async savePendingAnomalies() {
+    try {
+      const filename = path.join(__dirname, '..', 'data', 'pending-anomalies.json');
+      const anomalies = Array.from(this.pendingAnomalies.values());
+      
+      // Создать новую структуру с мета-статистикой
+      const data = {
+        meta: {
+          sessionStats: {
+            sessionStartTime: anomalies.length > 0 ? anomalies[0].watchlistTime : new Date().toISOString(),
+            lastUpdated: new Date().toISOString(),
+            totalAnomaliesProcessed: anomalies.length,
+            currentAnomaliesCount: anomalies.length,
+            convertedToTrades: 0,
+            removedFromWatchlist: 0,
+            averageVolumeLeverage: 0,
+            averageWatchlistTimeMinutes: 0,
+            longAnomaliesCount: 0,
+            shortAnomaliesCount: 0,
+            consolidatedAnomaliesCount: 0,
+            unconsolidatedAnomaliesCount: 0,
+            topVolumeLeverages: [],
+            conversionRate: 0.0,
+            sessionDurationMinutes: 0
+          },
+          fileInfo: {
+            version: "2.0",
+            description: "Pending anomalies with session statistics",
+            createdAt: anomalies.length > 0 ? anomalies[0].watchlistTime : new Date().toISOString(),
+            lastModified: new Date().toISOString()
+          }
+        },
+        anomalies: anomalies
+      };
+      
+      await fs.writeFile(filename, JSON.stringify(data, null, 2));
+      
+      // Обновить мета-статистику
+      await this.pendingAnomaliesStatsUpdater.updateStats();
+      
+      console.log(`💾 Сохранено ${anomalies.length} pending anomalies`);
+    } catch (error) {
+      console.error('❌ Ошибка сохранения pending anomalies:', error.message);
+    }
+  }
+
+  /**
+   * Добавить аномалию в watchlist
+   */
+  async addToWatchlist(anomaly) {
+    try {
+      this.pendingAnomalies.set(anomaly.symbol, anomaly);
+      await this.savePendingAnomalies();
+      
+      // Обновить мета-статистику
+      await this.pendingAnomaliesStatsUpdater.addAnomaly(anomaly);
+      
+      // Синхронизировать с trading-statistics.json
+      await this.watchlistStatsSync.syncWatchlistStats();
+      
+      console.log(`📋 ${anomaly.symbol} добавлен в watchlist (${this.pendingAnomalies.size} всего)`);
+    } catch (error) {
+      console.error('❌ Ошибка добавления в watchlist:', error.message);
+    }
+  }
+
+  /**
+   * Удалить аномалию из watchlist
+   */
+  async removeFromWatchlist(symbol, reason = 'removed') {
+    try {
+      if (this.pendingAnomalies.has(symbol)) {
+        this.pendingAnomalies.delete(symbol);
+        await this.savePendingAnomalies();
+        
+        // Обновить мета-статистику
+        await this.pendingAnomaliesStatsUpdater.removeAnomaly(symbol, reason);
+        
+        // Синхронизировать с trading-statistics.json
+        await this.watchlistStatsSync.syncWatchlistStats();
+        
+        console.log(`❌ ${symbol} удален из watchlist (${reason})`);
+      }
+    } catch (error) {
+      console.error('❌ Ошибка удаления из watchlist:', error.message);
+    }
   }
 }
 
