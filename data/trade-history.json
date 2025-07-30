@@ -37,5 +37,25 @@
     "closeReason": "stop_loss",
     "profitLoss": -1.2302284710017521,
     "duration": 8179056
+  },
+  {
+    "id": "OMNI/USDT_1753835728477",
+    "anomalyId": "OMNI_1753835376144",
+    "symbol": "OMNI/USDT",
+    "type": "Short",
+    "entryPrice": 5.130000000000001,
+    "stopLoss": 5.181300000000001,
+    "takeProfit": 4.976100000000001,
+    "entryTime": "2025-07-30T00:35:28.477Z",
+    "status": "closed",
+    "virtualAmount": 1000,
+    "lastPrice": 5.215,
+    "lastUpdateTime": "2025-07-30T00:35:42.320Z",
+    "currentVolume": 66524.96,
+    "exitPrice": 5.215,
+    "exitTime": "2025-07-30T00:35:42.320Z",
+    "closeReason": "stop_loss",
+    "profitLoss": -1.6569200779726914,
+    "duration": 13843
   }
 ]

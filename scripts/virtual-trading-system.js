@@ -322,6 +322,8 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
           await this.savePendingAnomalies();
         } else {
           console.log(`⏳ ${symbol} - Ожидание выполнения условий...`);
+          // Сохраняем обновления аномалии в файл
+          await this.savePendingAnomalies();
         }
       }
     } catch (error) {

@@ -11,8 +11,8 @@
     "status": "open",
     "virtualAmount": 1000,
     "lastPrice": 40.095,
-    "lastUpdateTime": "2025-07-30T00:35:09.376Z",
-    "currentVolume": 281.721
+    "lastUpdateTime": "2025-07-30T00:42:15.002Z",
+    "currentVolume": 408.953
   },
   {
     "id": "S/USDT_1753808661803",
@@ -25,9 +25,9 @@
     "entryTime": "2025-07-29T17:04:21.803Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 0.306,
-    "lastUpdateTime": "2025-07-30T00:35:09.406Z",
-    "currentVolume": 59607.4
+    "lastPrice": 0.30589999999999995,
+    "lastUpdateTime": "2025-07-30T00:42:15.019Z",
+    "currentVolume": 291000.6
   },
   {
     "id": "LDO/USDT_1753811129916",
@@ -40,9 +40,9 @@
     "entryTime": "2025-07-29T17:45:29.916Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 1.0334999999999999,
-    "lastUpdateTime": "2025-07-30T00:35:09.408Z",
-    "currentVolume": 9129.42
+    "lastPrice": 1.033,
+    "lastUpdateTime": "2025-07-30T00:42:15.038Z",
+    "currentVolume": 104654.93
   },
   {
     "id": "EIGEN/USDT_1753811143449",
@@ -55,9 +55,9 @@
     "entryTime": "2025-07-29T17:45:43.449Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 1.297,
-    "lastUpdateTime": "2025-07-30T00:35:10.034Z",
-    "currentVolume": 25185.02
+    "lastPrice": 1.2967499999999998,
+    "lastUpdateTime": "2025-07-30T00:42:15.663Z",
+    "currentVolume": 70509.12
   },
   {
     "id": "RSR/USDT_1753835497726",
@@ -70,9 +70,9 @@
     "entryTime": "2025-07-30T00:31:37.726Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 0.008402,
-    "lastUpdateTime": "2025-07-30T00:35:10.066Z",
-    "currentVolume": 3986171.7
+    "lastPrice": 0.008403500000000001,
+    "lastUpdateTime": "2025-07-30T00:42:15.685Z",
+    "currentVolume": 6143020.8
   },
   {
     "id": "PUNDIX/USDT_1753835500946",
@@ -85,9 +85,9 @@
     "entryTime": "2025-07-30T00:31:40.946Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 0.315525,
-    "lastUpdateTime": "2025-07-30T00:35:10.079Z",
-    "currentVolume": 13615.2
+    "lastPrice": 0.315425,
+    "lastUpdateTime": "2025-07-30T00:42:15.718Z",
+    "currentVolume": 38287.6
   },
   {
     "id": "PARTI/USDT_1753835502484",
@@ -100,9 +100,9 @@
     "entryTime": "2025-07-30T00:31:42.484Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 0.19444999999999998,
-    "lastUpdateTime": "2025-07-30T00:35:10.703Z",
-    "currentVolume": 14541.1
+    "lastPrice": 0.194375,
+    "lastUpdateTime": "2025-07-30T00:42:16.355Z",
+    "currentVolume": 110632.3
   },
   {
     "id": "MBL/USDT_1753835629820",
@@ -115,9 +115,9 @@
     "entryTime": "2025-07-30T00:33:49.820Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 0.00234075,
-    "lastUpdateTime": "2025-07-30T00:35:10.714Z",
-    "currentVolume": 3380949
+    "lastPrice": 0.002339,
+    "lastUpdateTime": "2025-07-30T00:42:16.394Z",
+    "currentVolume": 8452278
   },
   {
     "id": "PEOPLE/USDT_1753835636325",
@@ -131,8 +131,8 @@
     "status": "open",
     "virtualAmount": 1000,
     "lastPrice": 0.0199675,
-    "lastUpdateTime": "2025-07-30T00:35:10.735Z",
-    "currentVolume": 612736.6
+    "lastUpdateTime": "2025-07-30T00:42:16.430Z",
+    "currentVolume": 1901663.8
   },
   {
     "id": "GPS/USDT_1753835654255",
@@ -145,9 +145,9 @@
     "entryTime": "2025-07-30T00:34:14.255Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 0.0189175,
-    "lastUpdateTime": "2025-07-30T00:35:11.409Z",
-    "currentVolume": 26898
+    "lastPrice": 0.018915,
+    "lastUpdateTime": "2025-07-30T00:42:17.051Z",
+    "currentVolume": 161493.8
   },
   {
     "id": "SHELL/USDT_1753835669022",
@@ -160,23 +160,68 @@
     "entryTime": "2025-07-30T00:34:29.022Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 0.16870000000000002,
-    "lastUpdateTime": "2025-07-30T00:35:11.409Z",
-    "currentVolume": 87735.4
+    "lastPrice": 0.168625,
+    "lastUpdateTime": "2025-07-30T00:42:17.129Z",
+    "currentVolume": 156599.1
   },
   {
-    "id": "OMNI/USDT_1753835728477",
-    "anomalyId": "OMNI_1753835376144",
-    "symbol": "OMNI/USDT",
+    "id": "BABY/USDT_1753835876379",
+    "anomalyId": "BABY_1753835517094",
+    "symbol": "BABY/USDT",
     "type": "Short",
-    "entryPrice": 5.130000000000001,
-    "stopLoss": 5.181300000000001,
-    "takeProfit": 4.976100000000001,
-    "entryTime": "2025-07-30T00:35:28.477Z",
+    "entryPrice": 0.054665000000000005,
+    "stopLoss": 0.05521165000000001,
+    "takeProfit": 0.053025050000000004,
+    "entryTime": "2025-07-30T00:37:56.379Z",
     "status": "open",
     "virtualAmount": 1000,
-    "lastPrice": 5.130000000000001,
-    "lastUpdateTime": "2025-07-30T00:35:28.477Z",
-    "currentVolume": 60316.08
+    "lastPrice": 0.0546875,
+    "lastUpdateTime": "2025-07-30T00:42:17.146Z",
+    "currentVolume": 964273
+  },
+  {
+    "id": "HYPER/USDT_1753836022379",
+    "anomalyId": "HYPER_1753835382216",
+    "symbol": "HYPER/USDT",
+    "type": "Short",
+    "entryPrice": 0.4813,
+    "stopLoss": 0.486113,
+    "takeProfit": 0.46686099999999997,
+    "entryTime": "2025-07-30T00:40:22.379Z",
+    "status": "open",
+    "virtualAmount": 1000,
+    "lastPrice": 0.480325,
+    "lastUpdateTime": "2025-07-30T00:42:17.758Z",
+    "currentVolume": 1153274.5
+  },
+  {
+    "id": "STX/USDT_1753836063057",
+    "anomalyId": "STX_1753834653952",
+    "symbol": "STX/USDT",
+    "type": "Short",
+    "entryPrice": 0.77,
+    "stopLoss": 0.7777000000000001,
+    "takeProfit": 0.7469,
+    "entryTime": "2025-07-30T00:41:03.057Z",
+    "status": "open",
+    "virtualAmount": 1000,
+    "lastPrice": 0.77275,
+    "lastUpdateTime": "2025-07-30T00:42:17.799Z",
+    "currentVolume": 34016
+  },
+  {
+    "id": "INJ/USDT_1753836063365",
+    "anomalyId": "INJ_1753834653109",
+    "symbol": "INJ/USDT",
+    "type": "Short",
+    "entryPrice": 13.969999999999999,
+    "stopLoss": 14.109699999999998,
+    "takeProfit": 13.550899999999999,
+    "entryTime": "2025-07-30T00:41:03.365Z",
+    "status": "open",
+    "virtualAmount": 1000,
+    "lastPrice": 14.015,
+    "lastUpdateTime": "2025-07-30T00:42:18.290Z",
+    "currentVolume": 2516.05
   }
 ]
