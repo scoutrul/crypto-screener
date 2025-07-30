@@ -397,7 +397,6 @@ class VirtualTradingBaseService {
    */
   checkEntryConditions(currentPrice, entryLevel, cancelLevel, tradeType) {
     console.log(`🔍 Проверка условий входа для ${tradeType}:`);
-    console.log(`   💰 Текущая цена: $${currentPrice}`);
     console.log(`   🎯 Уровень входа: $${entryLevel}`);
     console.log(`   ❌ Уровень отмены: $${cancelLevel}`);
     
@@ -462,6 +461,7 @@ class VirtualTradingBaseService {
       lastPrice: entryPrice,
       lastUpdateTime: new Date().toISOString(),
       currentVolume: currentVolume, // Добавляем текущий объем свечи
+      volumeIncrease: null, // Увеличение объема в разах (будет установлено позже)
       entryLevel: entryLevel, // Уровень входа для отслеживания
       cancelLevel: cancelLevel // Уровень отмены для отслеживания
     };
@@ -757,6 +757,7 @@ class VirtualTradingBaseService {
 🛑 Стоп: $${stopLoss.toFixed(6)}
 🎯 Тейк: $${takeProfit.toFixed(6)}
 💵 Виртуальная сумма: $${trade.virtualAmount}
+📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease.toFixed(1)}x` : 'N/A'}
 
 📈 ТЕКУЩАЯ СТАТИСТИКА:
 • Всего сделок: ${stats.totalTrades}

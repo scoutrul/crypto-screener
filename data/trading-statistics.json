@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2025-07-30T00:35:42.614Z",
-  "totalTrades": 3,
-  "winningTrades": 1,
-  "losingTrades": 2,
-  "winRate": 33.3,
-  "totalProfit": 3.9073188133162673,
-  "averageProfit": 1.3,
+  "lastUpdated": "2025-07-30T01:16:39.402Z",
+  "totalTrades": 5,
+  "winningTrades": 2,
+  "losingTrades": 3,
+  "winRate": 40,
+  "totalProfit": 5.70597384184596,
+  "averageProfit": 1.14,
   "bestTrade": {
     "symbol": "CRV/USDT",
     "type": "Short",
@@ -19,10 +19,10 @@
     "entryTime": "2025-07-30T00:35:28.477Z"
   },
   "longestTrade": {
-    "symbol": "CRV/USDT",
+    "symbol": "EIGEN/USDT",
     "type": "Short",
-    "duration": 23845760,
-    "entryTime": "2025-07-29T08:30:21.788Z"
+    "duration": 27055793,
+    "entryTime": "2025-07-29T17:45:43.449Z"
   },
   "shortestTrade": {
     "symbol": "OMNI/USDT",
@@ -68,9 +68,33 @@
       "exitTime": "2025-07-30T00:35:42.320Z",
       "closeReason": "stop_loss",
       "duration": 13843
+    },
+    {
+      "id": "ASR/USDT_1753836466951",
+      "symbol": "ASR/USDT",
+      "type": "Short",
+      "entryPrice": 5.982,
+      "exitPrice": 6.054,
+      "profitLoss": -1.2036108324974935,
+      "entryTime": "2025-07-30T00:47:46.951Z",
+      "exitTime": "2025-07-30T01:15:17.703Z",
+      "closeReason": "stop_loss",
+      "duration": 1650752
+    },
+    {
+      "id": "EIGEN/USDT_1753811143449",
+      "symbol": "EIGEN/USDT",
+      "type": "Short",
+      "entryPrice": 1.324,
+      "exitPrice": 1.2842500000000001,
+      "profitLoss": 3.0022658610271864,
+      "entryTime": "2025-07-29T17:45:43.449Z",
+      "exitTime": "2025-07-30T01:16:39.242Z",
+      "closeReason": "take_profit",
+      "duration": 27055793
     }
   ],
   "systemStartTime": "2025-07-29T11:30:00.000Z",
   "totalDaysRunning": 1,
-  "averageTradesPerDay": 3
+  "averageTradesPerDay": 5
 }

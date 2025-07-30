@@ -248,6 +248,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         return;
       }
       
+      console.log('─'.repeat(50)); // Отбивка между сообщениями
       console.log(`🔍 [CONFIRMATION] Проверка подтверждения входа для ${symbol}:`);
       console.log(`   💰 Текущая цена: $${currentPrice}`);
       console.log(`   📊 Аномалия: ${tradeType} по $${anomaly.anomalyPrice}`);
@@ -289,6 +290,13 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         
         // Создать сделку (используем метод базового класса)
         const currentVolume = candles[candles.length - 1][5]; // Объем текущей свечи
+        
+        // Рассчитать увеличение объема
+        const since = Date.now() - (this.config.historicalWindow * 15 * 60 * 1000);
+        const historicalCandles = await this.fetchCandles(symbol, since, this.config.historicalWindow, 3);
+        const avgHistoricalVolume = this.calculateAverageVolume(historicalCandles);
+        const volumeIncrease = currentVolume / avgHistoricalVolume;
+        
         const trade = this.createVirtualTrade(
           symbol, 
           tradeType, 
@@ -298,6 +306,9 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
           anomaly.entryLevel,
           anomaly.cancelLevel
         );
+        
+        // Установить увеличение объема
+        trade.volumeIncrease = volumeIncrease;
         
         // Удалить из watchlist
         this.pendingAnomalies.delete(symbol);
@@ -322,6 +333,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
           await this.savePendingAnomalies();
         } else {
           console.log(`⏳ ${symbol} - Ожидание выполнения условий...`);
+          console.log('─'.repeat(50)); // Отбивка между сообщениями
           // Сохраняем обновления аномалии в файл
           await this.savePendingAnomalies();
         }
