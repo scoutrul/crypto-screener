@@ -14,18 +14,17 @@ class VirtualTradingBaseService {
     // Конфигурация по умолчанию
     this.config = {
       timeframe: '15m',
-      volumeThreshold: 3, // Объем в 3 раз больше среднего
-      priceThreshold: 0.005, // 0.5% для определения направления
+      volumeThreshold: 8, // Объем в 8 раз больше среднего
       historicalWindow: 8, // 8 свечей (2 часа)
-      virtualDeposit: 1000, // $1000 на сделку
-      stopLossPercent: 0.01, // 1%
-      takeProfitPercent: 0.03, // 3%
+      consolidationThreshold: 0.015, // 1.5% для проверки консолидации
+      priceThreshold: 0.01, // 1% для определения направления
+      stopLossPercent: 0.007, // 0.7%
+      takeProfitPercent: 0.028, // 2.8%
+      entryLevelPercent: 0.004, // 0.4% для уровня входа
+      cancelLevelPercent: 0.006, // 0.6% для уровня отмены
       breakEvenPercent: 0.20, // 20% для безубытка
       anomalyCooldown: 4, // 4 TF (1 час) без повторных аномалий
       entryConfirmationTFs: 6, // 6 TF для подтверждения точки входа (3 часа)
-      consolidationThreshold: 0.02, // 2% для проверки консолидации
-      entryLevelPercent: 0.005, // 0.5% для уровня входа
-      cancelLevelPercent: 0.005, // 0.5% для уровня отмены
       ...config
     };
 
@@ -87,6 +86,14 @@ class VirtualTradingBaseService {
       const filename = path.join(__dirname, '..', '..', '..', 'data', 'trade-history.json');
       const data = await fs.readFile(filename, 'utf8');
       this.tradeHistory = JSON.parse(data);
+      
+      // Добавить поддержку volumeIncrease для существующих сделок
+      this.tradeHistory.forEach(trade => {
+        if (!trade.volumeIncrease) {
+          trade.volumeIncrease = null; // Установить null для старых сделок
+        }
+      });
+      
       console.log(`📊 Загружено ${this.tradeHistory.length} исторических сделок`);
     } catch (error) {
       console.log('📊 История сделок не найдена, создаем новую');
@@ -221,6 +228,8 @@ class VirtualTradingBaseService {
           watchlistTime: anomaly.watchlistTime,
           currentVolume: anomaly.currentVolume || null, // Добавляем поддержку currentVolume
           volumeLeverage: anomaly.volumeLeverage || null, // Leverage объема
+          maxPrice: anomaly.maxPrice || null, // Максимальная цена в watchlist
+          minPrice: anomaly.minPrice || null, // Минимальная цена в watchlist
           entryLevel: anomaly.entryLevel || null, // Уровень входа
           cancelLevel: anomaly.cancelLevel || null, // Уровень отмены
           isConsolidated: anomaly.isConsolidated || false, // Флаг консолидации
@@ -244,6 +253,10 @@ class VirtualTradingBaseService {
       const tradesData = JSON.parse(data);
       this.activeTrades.clear();
       tradesData.forEach(trade => {
+        // Добавить поддержку volumeIncrease для существующих сделок
+        if (!trade.volumeIncrease) {
+          trade.volumeIncrease = null; // Установить null для старых сделок
+        }
         this.activeTrades.set(trade.symbol, trade);
         this.watchlist.add(trade.symbol);
       });
@@ -458,7 +471,6 @@ class VirtualTradingBaseService {
       takeProfit: takeProfit,
       entryTime: new Date().toISOString(),
       status: 'open',
-      virtualAmount: this.config.virtualDeposit,
       lastPrice: entryPrice,
       lastUpdateTime: new Date().toISOString(),
       currentVolume: currentVolume, // Добавляем текущий объем свечи
@@ -834,6 +846,7 @@ class VirtualTradingBaseService {
         message += `  💰 Точка входа: $${trade.entryPrice.toFixed(6)}\n`;
         message += `  📈 Текущая цена: $${lastPrice.toFixed(6)}\n`;
         message += `  📊 Изменение: ${changeSign}${priceChange.toFixed(2)}%\n`;
+        message += `  📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease}x` : 'N/A'}\n`;
         message += `  ⏰ Обновлено: ${lastUpdateTime}\n\n`;
       });
     }

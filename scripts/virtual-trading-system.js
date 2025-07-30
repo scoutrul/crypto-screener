@@ -282,6 +282,14 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         return;
       }
       
+      // Обновить максимальную/минимальную цену в watchlist
+      if (!anomaly.maxPrice || currentPrice > anomaly.maxPrice) {
+        anomaly.maxPrice = currentPrice;
+      }
+      if (!anomaly.minPrice || currentPrice < anomaly.minPrice) {
+        anomaly.minPrice = currentPrice;
+      }
+      
       // Этап 4: Проверка условий входа или отмены
       const result = this.checkEntryConditions(currentPrice, anomaly.entryLevel, anomaly.cancelLevel, tradeType);
       
@@ -359,7 +367,6 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       takeProfit: takeProfit,
       entryTime: new Date().toISOString(),
       status: 'open',
-      virtualAmount: this.config.virtualDeposit,
       lastPrice: entryPrice,
       lastUpdateTime: new Date().toISOString(),
       currentVolume: currentVolume // Добавляем текущий объем свечи
@@ -756,6 +763,36 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     console.log(`🥇 Активные сделки: ${activeTradesAgo} сек назад`);
     console.log(`🥈 Watchlist: ${pendingAgo} сек назад`);
     console.log(`🥉 Аномалии: ${anomalyAgo} сек назад`);
+    
+    // Добавить статистику по watchlist
+    if (this.pendingAnomalies.size > 0) {
+      console.log('\n📊 СТАТИСТИКА WATCHLIST:');
+      console.log(`📋 Монет в watchlist: ${this.pendingAnomalies.size}`);
+      
+      let longCount = 0, shortCount = 0;
+      let totalVolumeLeverage = 0;
+      let maxLeverage = 0;
+      let minLeverage = Infinity;
+      
+      this.pendingAnomalies.forEach(anomaly => {
+        if (anomaly.tradeType === 'Long') longCount++;
+        else shortCount++;
+        
+        if (anomaly.volumeLeverage) {
+          totalVolumeLeverage += anomaly.volumeLeverage;
+          maxLeverage = Math.max(maxLeverage, anomaly.volumeLeverage);
+          minLeverage = Math.min(minLeverage, anomaly.volumeLeverage);
+        }
+      });
+      
+      const avgLeverage = totalVolumeLeverage > 0 ? (totalVolumeLeverage / this.pendingAnomalies.size).toFixed(1) : 0;
+      
+      console.log(`📈 Long позиции: ${longCount}`);
+      console.log(`📉 Short позиции: ${shortCount}`);
+      console.log(`📊 Средний leverage: ${avgLeverage}x`);
+      console.log(`📊 Максимальный leverage: ${maxLeverage > 0 ? maxLeverage.toFixed(1) + 'x' : 'N/A'}`);
+      console.log(`📊 Минимальный leverage: ${minLeverage < Infinity ? minLeverage.toFixed(1) + 'x' : 'N/A'}`);
+    }
   }
 
   /**

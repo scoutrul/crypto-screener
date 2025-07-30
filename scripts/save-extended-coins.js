@@ -28,7 +28,7 @@ async function saveExtendedCoins() {
     // Расширенные параметры для получения 750 монет
     const params = {
       totalLimit: 1500,       // Анализируем топ-1500 монет
-      minMarketCapBTC: 10,    // Снижаем минимальную капитализацию до 10 BTC
+      minMarketCapBTC: 40,    // 
       currency: 'btc',        // В BTC парах
       maxResults: 750         // Показываем топ-750 из отфильтрованных
     };

@@ -14,7 +14,6 @@ this.config = {
   volumeThreshold: 3,                  // Порог объема (в 3 раза больше среднего)
   priceThreshold: 0.005,               // Порог цены (0.5% для определения направления)
   historicalWindow: 8,                 // Окно исторических данных (8 свечей = 2 часа)
-  virtualDeposit: 1000,               // Виртуальный депозит на сделку ($1000)
   stopLossPercent: 0.01,              // Стоп-лосс (1%)
   takeProfitPercent: 0.03,            // Тейк-профит (3%)
   breakEvenPercent: 0.20,             // Процент для безубытка (20%)

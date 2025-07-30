@@ -475,7 +475,6 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
       takeProfit: takeProfit,
       entryTime: new Date().toISOString(),
       status: 'open',
-      virtualAmount: this.config.virtualDeposit,
       lastPrice: entryPrice,
       lastUpdateTime: new Date().toISOString(),
       currentVolume: currentVolume // Добавляем текущий объем свечи
