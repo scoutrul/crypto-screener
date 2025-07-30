@@ -80,6 +80,12 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
    * Добавить задачу в приоритетную очередь
    */
   addTaskToQueue(task, priority) {
+    // Ограничиваем размер очереди до 20 задач
+    if (this.taskQueue.length >= 20) {
+      console.log(`⚠️ Очередь переполнена (${this.taskQueue.length} задач), пропускаем добавление новой задачи`);
+      return;
+    }
+    
     this.taskQueue.push({ task, priority, timestamp: Date.now() });
     // Сортировка по приоритету (1 - высший приоритет)
     this.taskQueue.sort((a, b) => a.priority - b.priority);
@@ -114,11 +120,11 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       await new Promise(resolve => setTimeout(resolve, 0));
     }
     
-    // Если очередь пуста, заполняем её задачами из приоритета 3 (аномалии)
+    // Если очередь пуста, добавляем задачу из приоритета 3 (аномалии)
     if (this.taskQueue.length === 0) {
-      console.log('📦 Очередь пуста, заполняем задачами из приоритета 3 (аномалии)...');
+      console.log('📦 Очередь пуста, добавляем задачу из приоритета 3 (аномалии)...');
       this.addTaskToQueue(async () => {
-        console.log('🔍 [ПОТОК 3] Запуск поиска аномалий из очереди...');
+        console.log('🔍 [ПОТОК 1] Запуск поиска аномалий из пустой очереди...');
         await this.runAnomalyCheck();
       }, 3);
     } else {
@@ -184,7 +190,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
    * Обнаружить аномалию объема
    */
   detectVolumeAnomaly(currentVolume, historicalVolume) {
-    return currentVolume > historicalVolume * CONFIG.volumeThreshold;
+    return currentVolume > historicalVolume * this.config.volumeThreshold;
   }
 
   /**
@@ -195,7 +201,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     if (!cooldownTime) return false;
     
     const now = Date.now();
-    const cooldownDuration = CONFIG.anomalyCooldown * 15 * 60 * 1000; // 4 TF * 15 минут
+    const cooldownDuration = this.config.anomalyCooldown * 15 * 60 * 1000; // 4 TF * 15 минут
     return (now - cooldownTime) < cooldownDuration;
   }
 
@@ -212,9 +218,9 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
   determineTradeType(anomalyPrice, historicalPrice) {
     const priceDiff = (anomalyPrice - historicalPrice) / historicalPrice;
     
-    if (priceDiff > CONFIG.priceThreshold) {
+    if (priceDiff > this.config.priceThreshold) {
       return 'Short';
-    } else if (priceDiff < -CONFIG.priceThreshold) {
+    } else if (priceDiff < -this.config.priceThreshold) {
       return 'Long';
     }
     
@@ -328,12 +334,12 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
    */
   createVirtualTrade(symbol, tradeType, entryPrice, anomalyId = null, currentVolume = null) {
     const stopLoss = tradeType === 'Long' 
-      ? entryPrice * (1 - CONFIG.stopLossPercent)
-      : entryPrice * (1 + CONFIG.stopLossPercent);
+      ? entryPrice * (1 - this.config.stopLossPercent)
+      : entryPrice * (1 + this.config.stopLossPercent);
     
     const takeProfit = tradeType === 'Long'
-      ? entryPrice * (1 + CONFIG.takeProfitPercent)
-      : entryPrice * (1 - CONFIG.takeProfitPercent);
+      ? entryPrice * (1 + this.config.takeProfitPercent)
+      : entryPrice * (1 - this.config.takeProfitPercent);
 
     const trade = {
       id: `${symbol}_${Date.now()}`,
@@ -345,7 +351,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       takeProfit: takeProfit,
       entryTime: new Date().toISOString(),
       status: 'open',
-      virtualAmount: CONFIG.virtualDeposit,
+      virtualAmount: this.config.virtualDeposit,
       lastPrice: entryPrice,
       lastUpdateTime: new Date().toISOString(),
       currentVolume: currentVolume // Добавляем текущий объем свечи
@@ -1055,7 +1061,6 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       }
       
       const batchSize = 10; // Количество одновременных запросов
-      const delayBetweenBatches = 1000; // Задержка между батчами (1 секунда)
       
       // Разбить отфильтрованные монеты на батчи
       for (let i = 0; i < availableCoins.length; i += batchSize) {
@@ -1075,9 +1080,24 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         // Ждать завершения всех запросов в батче
         await Promise.all(promises);
         
-        // Задержка между батчами для избежания rate limiting
-        if (i + batchSize < availableCoins.length) {
-          await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+        // После каждого 5-го батча добавляем задачи с высоким приоритетом в очередь
+        if (i + batchSize < availableCoins.length && (Math.floor(i / batchSize) + 1) % 5 === 0) {
+          // Добавить задачу Trade List (приоритет 1)
+          this.addTaskToQueue(async () => {
+            console.log('📊 [ПОТОК 3] Проверка активных сделок между батчами...');
+            await this.trackActiveTrades();
+            this.lastActiveTradesCheck = Date.now();
+          }, 1);
+          
+          // Добавить задачу Watchlist (приоритет 2)
+          this.addTaskToQueue(async () => {
+            console.log('⏳ [ПОТОК 2] Проверка watchlist между батчами...');
+            await this.checkPendingAnomalies();
+            this.lastPendingCheck = Date.now();
+          }, 2);
+          
+          // Небольшая пауза для обработки высокоприоритетных задач
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
       
@@ -1126,7 +1146,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       // Заполнить очередь задачами из приоритета 3 для непрерывной работы
       console.log('📦 Инициализация очереди задачами из приоритета 3...');
       this.addTaskToQueue(async () => {
-        console.log('🔍 [ПОТОК 3] Инициализация поиска аномалий...');
+        console.log('🔍 [ПОТОК 1] Инициализация поиска аномалий...');
         await this.runAnomalyCheck();
       }, 3);
 
