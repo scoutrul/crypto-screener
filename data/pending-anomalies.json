@@ -1,28 +1,82 @@
 {
   "meta": {
     "sessionStats": {
-      "sessionStartTime": "2025-07-30T16:31:24.873Z",
-      "lastUpdated": "2025-07-30T16:31:24.874Z",
-      "totalAnomaliesProcessed": 0,
-      "currentAnomaliesCount": 0,
+      "sessionStartTime": "2025-07-30T18:16:57.551Z",
+      "lastUpdated": "2025-07-30T19:12:42.570Z",
+      "totalAnomaliesProcessed": 4,
+      "currentAnomaliesCount": 4,
       "convertedToTrades": 0,
       "removedFromWatchlist": 0,
-      "averageVolumeLeverage": 0,
-      "averageWatchlistTimeMinutes": 0,
-      "longAnomaliesCount": 0,
-      "shortAnomaliesCount": 0,
+      "averageVolumeLeverage": 13.8,
+      "averageWatchlistTimeMinutes": 21,
+      "longAnomaliesCount": 3,
+      "shortAnomaliesCount": 1,
       "consolidatedAnomaliesCount": 0,
       "unconsolidatedAnomaliesCount": 0,
-      "topVolumeLeverages": [],
+      "topVolumeLeverages": [
+        19,
+        17.2,
+        10.3,
+        8.8
+      ],
       "conversionRate": 0,
-      "sessionDurationMinutes": 0
+      "sessionDurationMinutes": 55
     },
     "fileInfo": {
       "version": "2.0",
       "description": "Pending anomalies with session statistics",
-      "createdAt": "2025-07-30T16:31:24.873Z",
-      "lastModified": "2025-07-30T16:31:24.874Z"
+      "createdAt": "2025-07-30T18:16:57.551Z",
+      "lastModified": "2025-07-30T19:12:42.570Z"
     }
   },
-  "anomalies": []
+  "anomalies": [
+    {
+      "symbol": "BANANA/USDT",
+      "anomalyId": "BANANA_1753899417551",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-30T18:00:00.000Z",
+      "watchlistTime": "2025-07-30T18:16:57.551Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 26.880000000000003,
+      "historicalPrice": 26.354166666666668,
+      "currentVolume": 14997.989,
+      "volumeLeverage": 10.3
+    },
+    {
+      "symbol": "ZEN/USDT",
+      "anomalyId": "ZEN_1753902100584",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-30T18:45:00.000Z",
+      "watchlistTime": "2025-07-30T19:01:40.584Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 8.155000000000001,
+      "historicalPrice": 8.265833333333331,
+      "currentVolume": 11990.93,
+      "volumeLeverage": 8.8
+    },
+    {
+      "symbol": "METIS/USDT",
+      "anomalyId": "METIS_1753902110674",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-30T18:45:00.000Z",
+      "watchlistTime": "2025-07-30T19:01:50.674Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 16.04,
+      "historicalPrice": 16.339166666666667,
+      "currentVolume": 12215.79,
+      "volumeLeverage": 19
+    },
+    {
+      "symbol": "BNT/USDT",
+      "anomalyId": "BNT_1753902122325",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-30T18:45:00.000Z",
+      "watchlistTime": "2025-07-30T19:02:02.325Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.74895,
+      "historicalPrice": 0.7580166666666667,
+      "currentVolume": 37380.2,
+      "volumeLeverage": 17.2
+    }
+  ]
 }

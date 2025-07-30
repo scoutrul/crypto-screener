@@ -36,32 +36,41 @@ class CryptoTelegramBot {
         }
       });
       
-      // Инициализировать очередь сообщений
-      messageQueue.setBot(this.bot);
-      
-      // Инициализировать приложение
-      this.app = new CryptoScreenerApp();
-      await this.app.start();
-      
-      // Инициализировать отправитель watchlist
-      this.watchlistSender = new WatchlistStatusSender();
+             // Инициализировать очередь сообщений
+       messageQueue.setBot(this.bot);
+       
+       // Дождаться полной инициализации бота
+       await new Promise(resolve => setTimeout(resolve, 10000));
+       
+       // Проверить, что бот готов
+       if (!this.bot.isPolling()) {
+         throw new Error('Бот не готов к работе');
+       }
+       
+       // Инициализировать приложение
+       this.app = new CryptoScreenerApp();
+       await this.app.start();
+       
+       // Инициализировать отправитель watchlist
+       this.watchlistSender = new WatchlistStatusSender();
       
       console.log('🤖 Telegram бот инициализирован');
       
       // Настроить команды
       this.setupCommands();
       
-      // Отправить приветствие в основной чат
-      const chatId = process.env.TELEGRAM_CHAT_ID;
-      if (chatId) {
-        const message = `🤖 Бот запущен и готов к работе!\n\n` +
-                        `📋 Доступные команды:\n` +
-                        `💰 /trades - Активные сделки\n` +
-                        `📊 /watchlist - Статус watchlist\n` +
-                        `📈 /stats - Статистика watchlist\n` +
-                        `📋 /status - Общий статус системы\n` +
-                        `❓ /help - Справка\n\n` +
-                        `💡 Используйте /help для получения подробной информации`;
+             // Отправить приветствие в основной чат
+       const chatId = process.env.TELEGRAM_CHAT_ID;
+       if (chatId) {
+         const message = `🤖 Бот запущен и готов к работе!\n\n` +
+                         `📋 Доступные команды:\n` +
+                         `💰 /trades - Активные сделки\n` +
+                         `📊 /watchlist - Статус watchlist\n` +
+                         `📈 /stats - Статистика watchlist\n` +
+                         `📊 /trading - Полная торговая статистика\n` +
+                         `📋 /status - Общий статус системы\n` +
+                         `❓ /help - Справка\n\n` +
+                         `💡 Используйте /help для получения подробной информации`;
         try {
           await messageQueue.addMessage(chatId, message);
         } catch (e) {
@@ -84,19 +93,21 @@ class CryptoTelegramBot {
    * Настроить команды бота
    */
   setupCommands() {
-    // Команда /start
-    this.bot.onText(/\/start/, async (msg) => {
-      const chatId = msg.chat.id;
-      const message = `🤖 Добро пожаловать в Crypto Screener Bot!\n\n` +
-                     `📋 Доступные команды:\n` +
-                     `💰 /trades - Активные сделки\n` +
-                     `📊 /watchlist - Статус watchlist\n` +
-                     `📈 /status - Общий статус системы\n` +
-                     `❓ /help - Справка\n\n` +
-                     `💡 Используйте /help для получения подробной информации`;
-      
-      await messageQueue.addMessage(chatId, message);
-    });
+         // Команда /start
+     this.bot.onText(/\/start/, async (msg) => {
+       const chatId = msg.chat.id;
+       const message = `🤖 Добро пожаловать в Crypto Screener Bot!\n\n` +
+                      `📋 Доступные команды:\n` +
+                      `💰 /trades - Активные сделки\n` +
+                      `📊 /watchlist - Статус watchlist\n` +
+                      `📈 /stats - Статистика watchlist\n` +
+                      `📊 /trading - Полная торговая статистика\n` +
+                      `📋 /status - Общий статус системы\n` +
+                      `❓ /help - Справка\n\n` +
+                      `💡 Используйте /help для получения подробной информации`;
+       
+       await messageQueue.addMessage(chatId, message);
+     });
 
     // Команда /watchlist
     this.bot.onText(/\/watchlist/, async (msg) => {
@@ -109,8 +120,8 @@ class CryptoTelegramBot {
         const anomalies = await this.watchlistSender.loadPendingAnomalies();
         const message = this.watchlistSender.createWatchlistMessage(anomalies);
         
-        // Разбить на части, если нужно
-        const messageParts = this.watchlistSender.splitMessageForTelegram(message);
+                 // Разбить на части, если нужно
+         const messageParts = this.splitMessageForTelegram(message);
         
         for (let i = 0; i < messageParts.length; i++) {
           const part = messageParts[i];
@@ -235,72 +246,118 @@ class CryptoTelegramBot {
       }
     });
 
-    // Команда /help - справка
-    this.bot.onText(/\/help/, async (msg) => {
-      const chatId = msg.chat.id;
-      
-      const message = `🤖 Crypto Screener Bot - Справка\n\n` +
-                      `📋 Доступные команды:\n\n` +
-                      `💰 /trades - Активные сделки\n` +
-                      `📊 /watchlist - Детальный статус watchlist\n` +
-                      `📈 /stats - Статистика watchlist за 24 часа\n` +
-                      `📋 /status - Общий статус системы\n` +
-                      `❓ /help - Эта справка\n\n` +
-                      `💡 Используйте /trades для просмотра текущих активных сделок\n` +
-                      `💡 Используйте /watchlist для получения подробной информации о каждой аномалии\n` +
-                      `💡 Используйте /stats для анализа эффективности watchlist\n` +
-                      `💡 Используйте /status для общего обзора системы`;
-      
-      await messageQueue.addMessage(chatId, message);
-    });
+         // Команда /help - справка
+     this.bot.onText(/\/help/, async (msg) => {
+       const chatId = msg.chat.id;
+       
+       const message = `🤖 Crypto Screener Bot - Справка\n\n` +
+                       `📋 Доступные команды:\n\n` +
+                       `💰 /trades - Активные сделки\n` +
+                       `📊 /watchlist - Детальный статус watchlist\n` +
+                       `📈 /stats - Статистика watchlist за 24 часа\n` +
+                       `📊 /trading - Полная торговая статистика\n` +
+                       `📋 /status - Общий статус системы\n` +
+                       `❓ /help - Эта справка\n\n` +
+                       `💡 Используйте /trades для просмотра текущих активных сделок\n` +
+                       `💡 Используйте /watchlist для получения подробной информации о каждой аномалии\n` +
+                       `💡 Используйте /stats для анализа эффективности watchlist\n` +
+                       `💡 Используйте /trading для полной торговой статистики\n` +
+                       `💡 Используйте /status для общего обзора системы`;
+       
+       await messageQueue.addMessage(chatId, message);
+     });
 
-    // Команда /stats - статистика watchlist
-    this.bot.onText(/\/stats/, async (msg) => {
-      const chatId = msg.chat.id;
-      
-      try {
-        await messageQueue.addMessage(chatId, '📊 Загружаю статистику watchlist...');
-        
-        // Импортировать анализатор статистики
-        const WatchlistStatisticsAnalyzer = require('./watchlist-statistics');
-        const analyzer = new WatchlistStatisticsAnalyzer();
-        
-        // Получить статистику за 24 часа
-        await analyzer.loadData();
-        const periodData = analyzer.getPeriodStatistics(24);
-        const detailedStats = analyzer.calculateDetailedStatistics(periodData);
-        const report = analyzer.createReport(periodData, detailedStats);
-        
-        // Разбить на части, если сообщение слишком длинное
-        const messageParts = this.splitMessageForTelegram(report);
-        
-        if (messageParts.length > 1) {
-          for (let i = 0; i < messageParts.length; i++) {
-            const part = messageParts[i];
-            const partNumber = i + 1;
-            const totalParts = messageParts.length;
-            
-            const partMessage = part.replace(
-              '📊 СТАТИСТИКА WATCHLIST ЗА 24ч',
-              `📊 СТАТИСТИКА WATCHLIST ЗА 24ч (Часть ${partNumber}/${totalParts})`
-            );
-            
-            await messageQueue.addMessage(chatId, partMessage, { parse_mode: 'HTML' });
-            
-            // Задержка между частями
-            if (i < messageParts.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-          }
-        } else {
-          await messageQueue.addMessage(chatId, report, { parse_mode: 'HTML' });
-        }
-        
-      } catch (error) {
-        console.error('❌ Ошибка отправки статистики:', error.message);
-        await messageQueue.addMessage(chatId, '❌ Ошибка загрузки статистики watchlist');
-      }
-    });
+         // Команда /stats - статистика watchlist
+     this.bot.onText(/\/stats/, async (msg) => {
+       const chatId = msg.chat.id;
+       
+       try {
+         await messageQueue.addMessage(chatId, '📊 Загружаю статистику watchlist...');
+         
+         // Импортировать анализатор статистики
+         const WatchlistStatisticsAnalyzer = require('./watchlist-statistics');
+         const analyzer = new WatchlistStatisticsAnalyzer();
+         
+         // Получить статистику за 24 часа
+         await analyzer.loadData();
+         const periodData = analyzer.getPeriodStatistics(24);
+         const detailedStats = analyzer.calculateDetailedStatistics(periodData);
+         const report = analyzer.createReport(periodData, detailedStats);
+         
+         // Разбить на части, если сообщение слишком длинное
+         const messageParts = this.splitMessageForTelegram(report);
+         
+         if (messageParts.length > 1) {
+           for (let i = 0; i < messageParts.length; i++) {
+             const part = messageParts[i];
+             const partNumber = i + 1;
+             const totalParts = messageParts.length;
+             
+             const partMessage = part.replace(
+               '📊 СТАТИСТИКА WATCHLIST ЗА 24ч',
+               `📊 СТАТИСТИКА WATCHLIST ЗА 24ч (Часть ${partNumber}/${totalParts})`
+             );
+             
+             await messageQueue.addMessage(chatId, partMessage, { parse_mode: 'HTML' });
+             
+             // Задержка между частями
+             if (i < messageParts.length - 1) {
+               await new Promise(resolve => setTimeout(resolve, 1000));
+             }
+           }
+         } else {
+           await messageQueue.addMessage(chatId, report, { parse_mode: 'HTML' });
+         }
+         
+       } catch (error) {
+         console.error('❌ Ошибка отправки статистики:', error.message);
+         await messageQueue.addMessage(chatId, '❌ Ошибка загрузки статистики watchlist');
+       }
+     });
+
+     // Команда /trading - полная торговая статистика
+     this.bot.onText(/\/trading/, async (msg) => {
+       const chatId = msg.chat.id;
+       
+       try {
+         await messageQueue.addMessage(chatId, '📊 Загружаю торговую статистику...');
+         
+         // Импортировать функцию создания статуса системы
+         const { createSystemStatusMessage } = require('./send-system-status');
+         
+         // Создать сообщение со статусом системы
+         const message = await createSystemStatusMessage();
+         
+         // Разбить на части, если сообщение слишком длинное
+         const messageParts = this.splitMessageForTelegram(message);
+         
+         if (messageParts.length > 1) {
+           for (let i = 0; i < messageParts.length; i++) {
+             const part = messageParts[i];
+             const partNumber = i + 1;
+             const totalParts = messageParts.length;
+             
+             const partMessage = part.replace(
+               '📊 СТАТУС СИСТЕМЫ:',
+               `📊 СТАТУС СИСТЕМЫ (Часть ${partNumber}/${totalParts}):`
+             );
+             
+             await messageQueue.addMessage(chatId, partMessage);
+             
+             // Задержка между частями
+             if (i < messageParts.length - 1) {
+               await new Promise(resolve => setTimeout(resolve, 1000));
+             }
+           }
+         } else {
+           await messageQueue.addMessage(chatId, message);
+         }
+         
+       } catch (error) {
+         console.error('❌ Ошибка отправки торговой статистики:', error.message);
+         await messageQueue.addMessage(chatId, '❌ Ошибка загрузки торговой статистики');
+       }
+     });
 
     // Обработка неизвестных команд
     this.bot.on('message', async (msg) => {

@@ -1,28 +1,28 @@
 {
-  "lastUpdated": "2025-07-30T15:50:24.079Z",
-  "totalTrades": 3,
-  "winningTrades": 1,
-  "losingTrades": 2,
-  "winRate": 33.3,
-  "totalProfit": 1.3885844523801425,
-  "averageProfit": 0.46,
+  "lastUpdated": "2025-07-30T19:06:25.094Z",
+  "totalTrades": 16,
+  "winningTrades": 8,
+  "losingTrades": 8,
+  "winRate": 50,
+  "totalProfit": 17.251911823270067,
+  "averageProfit": 1.08,
   "bestTrade": {
-    "symbol": "ARC/USDT",
+    "symbol": "PORTAL/USDT",
     "type": "Long",
-    "profitLoss": 2.9578422484134195,
-    "entryTime": "2025-07-30T13:05:20.967Z"
+    "profitLoss": 3.2915360501567394,
+    "entryTime": "2025-07-30T13:04:35.460Z"
   },
   "worstTrade": {
-    "symbol": "MOODENG/USDT",
+    "symbol": "TRB/USDT",
     "type": "Long",
-    "profitLoss": -0.8061147773786599,
-    "entryTime": "2025-07-30T13:01:58.075Z"
+    "profitLoss": -0.9393625291526227,
+    "entryTime": "2025-07-30T13:03:40.183Z"
   },
   "longestTrade": {
-    "symbol": "ARC/USDT",
+    "symbol": "APE/USDT",
     "type": "Long",
-    "duration": 7164146,
-    "entryTime": "2025-07-30T13:05:20.967Z"
+    "duration": 21899807,
+    "entryTime": "2025-07-30T13:01:23.502Z"
   },
   "shortestTrade": {
     "symbol": "SYS/USDT",
@@ -31,27 +31,23 @@
     "entryTime": "2025-07-30T14:29:21.994Z"
   },
   "watchlistStats": {
-    "sessionStartTime": "2025-07-30T13:45:00.000Z",
-    "lastUpdated": "2025-07-30T15:46:26.052Z",
-    "totalAnomaliesProcessed": 5,
-    "currentAnomaliesCount": 5,
+    "sessionStartTime": "2025-07-30T16:38:21.056Z",
+    "lastUpdated": "2025-07-30T16:38:21.058Z",
+    "totalAnomaliesProcessed": 2,
+    "currentAnomaliesCount": 1,
     "convertedToTrades": 0,
     "removedFromWatchlist": 0,
-    "averageVolumeLeverage": 11.2,
-    "averageWatchlistTimeMinutes": 72,
+    "averageVolumeLeverage": 9,
+    "averageWatchlistTimeMinutes": 0,
     "longAnomaliesCount": 0,
-    "shortAnomaliesCount": 5,
-    "consolidatedAnomaliesCount": 3,
-    "unconsolidatedAnomaliesCount": 2,
+    "shortAnomaliesCount": 1,
+    "consolidatedAnomaliesCount": 0,
+    "unconsolidatedAnomaliesCount": 0,
     "topVolumeLeverages": [
-      15.8,
-      13,
-      9.8,
-      8.9,
-      8.4
+      9
     ],
     "conversionRate": 0,
-    "sessionDurationMinutes": 121
+    "sessionDurationMinutes": 0
   },
   "monthlyStats": {},
   "dailyStats": {},
@@ -91,9 +87,165 @@
       "exitTime": "2025-07-30T15:04:45.113Z",
       "closeReason": "take_profit",
       "duration": 7164146
+    },
+    {
+      "id": "PORTAL/USDT_1753880675460",
+      "symbol": "PORTAL/USDT",
+      "type": "Long",
+      "entryPrice": 0.047850000000000004,
+      "exitPrice": 0.049425000000000004,
+      "profitLoss": 3.2915360501567394,
+      "entryTime": "2025-07-30T13:04:35.460Z",
+      "exitTime": "2025-07-30T16:46:54.031Z",
+      "closeReason": "take_profit",
+      "duration": 13338571
+    },
+    {
+      "id": "GNS/USDT_1753886848085",
+      "symbol": "GNS/USDT",
+      "type": "Short",
+      "entryPrice": 1.8864999999999998,
+      "exitPrice": 1.9024999999999999,
+      "profitLoss": -0.8481314603763591,
+      "entryTime": "2025-07-30T14:47:28.085Z",
+      "exitTime": "2025-07-30T17:15:48.724Z",
+      "closeReason": "stop_loss",
+      "duration": 8900639
+    },
+    {
+      "id": "KAS/USDT_1753880459412",
+      "symbol": "KAS/USDT",
+      "type": "Long",
+      "entryPrice": 0.09132,
+      "exitPrice": 0.09392500000000001,
+      "profitLoss": 2.852606219886126,
+      "entryTime": "2025-07-30T13:00:59.412Z",
+      "exitTime": "2025-07-30T17:45:35.663Z",
+      "closeReason": "take_profit",
+      "duration": 17076251
+    },
+    {
+      "id": "ACE/USDT_1753880660613",
+      "symbol": "ACE/USDT",
+      "type": "Long",
+      "entryPrice": 0.543,
+      "exitPrice": 0.5585,
+      "profitLoss": 2.854511970534062,
+      "entryTime": "2025-07-30T13:04:20.613Z",
+      "exitTime": "2025-07-30T17:45:37.031Z",
+      "closeReason": "take_profit",
+      "duration": 16876418
+    },
+    {
+      "id": "SEI/USDT_1753880466275",
+      "symbol": "SEI/USDT",
+      "type": "Long",
+      "entryPrice": 0.30265,
+      "exitPrice": 0.31195,
+      "profitLoss": 3.0728564348257166,
+      "entryTime": "2025-07-30T13:01:06.275Z",
+      "exitTime": "2025-07-30T17:45:37.929Z",
+      "closeReason": "take_profit",
+      "duration": 17071654
+    },
+    {
+      "id": "ACX/USDT_1753880621214",
+      "symbol": "ACX/USDT",
+      "type": "Long",
+      "entryPrice": 0.16805,
+      "exitPrice": 0.172775,
+      "profitLoss": 2.8116631954775406,
+      "entryTime": "2025-07-30T13:03:41.214Z",
+      "exitTime": "2025-07-30T17:57:53.059Z",
+      "closeReason": "take_profit",
+      "duration": 17651845
+    },
+    {
+      "id": "NMR/USDT_1753882508100",
+      "symbol": "NMR/USDT",
+      "type": "Long",
+      "entryPrice": 8.504999999999999,
+      "exitPrice": 8.7575,
+      "profitLoss": 2.968841857730762,
+      "entryTime": "2025-07-30T13:35:08.100Z",
+      "exitTime": "2025-07-30T18:00:38.506Z",
+      "closeReason": "take_profit",
+      "duration": 15930406
+    },
+    {
+      "id": "GOAT/USDT_1753880620185",
+      "symbol": "GOAT/USDT",
+      "type": "Long",
+      "entryPrice": 0.10198499999999999,
+      "exitPrice": 0.10492000000000001,
+      "profitLoss": 2.8778741971858817,
+      "entryTime": "2025-07-30T13:03:40.185Z",
+      "exitTime": "2025-07-30T18:30:32.851Z",
+      "closeReason": "take_profit",
+      "duration": 19612666
+    },
+    {
+      "id": "INJ/USDT_1753880466392",
+      "symbol": "INJ/USDT",
+      "type": "Long",
+      "entryPrice": 13.684999999999999,
+      "exitPrice": 13.587499999999999,
+      "profitLoss": -0.7124588966021203,
+      "entryTime": "2025-07-30T13:01:06.392Z",
+      "exitTime": "2025-07-30T19:05:30.862Z",
+      "closeReason": "stop_loss",
+      "duration": 21864470
+    },
+    {
+      "id": "TRB/USDT_1753880620183",
+      "symbol": "TRB/USDT",
+      "type": "Long",
+      "entryPrice": 38.59,
+      "exitPrice": 38.227500000000006,
+      "profitLoss": -0.9393625291526227,
+      "entryTime": "2025-07-30T13:03:40.183Z",
+      "exitTime": "2025-07-30T19:05:31.694Z",
+      "closeReason": "stop_loss",
+      "duration": 21711511
+    },
+    {
+      "id": "IO/USDT_1753880619739",
+      "symbol": "IO/USDT",
+      "type": "Long",
+      "entryPrice": 0.655,
+      "exitPrice": 0.65025,
+      "profitLoss": -0.7251908396946614,
+      "entryTime": "2025-07-30T13:03:39.739Z",
+      "exitTime": "2025-07-30T19:05:38.205Z",
+      "closeReason": "stop_loss",
+      "duration": 21718466
+    },
+    {
+      "id": "APE/USDT_1753880483502",
+      "symbol": "APE/USDT",
+      "type": "Long",
+      "entryPrice": 0.59365,
+      "exitPrice": 0.588875,
+      "profitLoss": -0.8043459951149624,
+      "entryTime": "2025-07-30T13:01:23.502Z",
+      "exitTime": "2025-07-30T19:06:23.309Z",
+      "closeReason": "stop_loss",
+      "duration": 21899807
+    },
+    {
+      "id": "RAY/USDT_1753883255778",
+      "symbol": "RAY/USDT",
+      "type": "Long",
+      "entryPrice": 2.8970000000000002,
+      "exitPrice": 2.87275,
+      "profitLoss": -0.837072833966183,
+      "entryTime": "2025-07-30T13:47:35.778Z",
+      "exitTime": "2025-07-30T19:06:24.938Z",
+      "closeReason": "stop_loss",
+      "duration": 19129160
     }
   ],
   "systemStartTime": "2025-07-30T11:41:28.711Z",
   "totalDaysRunning": 1,
-  "averageTradesPerDay": 3
+  "averageTradesPerDay": 16
 }

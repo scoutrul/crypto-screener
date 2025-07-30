@@ -92,7 +92,7 @@ class WatchlistStatusSender {
       const emoji = anomaly.tradeType === 'Long' ? '🟢' : '🔴';
       
       message += `${emoji} ${symbol} (${anomaly.tradeType})\n`;
-      message += `   📊 Объем: ${anomaly.volumeLeverage || 'N/A'}x\n`;
+      message += `   📊 Объем: ${anomaly.volumeLeverage ? `${anomaly.volumeLeverage}x` : 'N/A'}\n`;
       message += `   💰 Аномальная цена: $${anomaly.anomalyPrice.toFixed(6)}\n`;
       message += `   📈 Текущая цена: $${stats.currentPrice.toFixed(6)}\n`;
       message += `   ⏱️ Время в watchlist: ${stats.timeInWatchlist} мин\n`;
@@ -133,6 +133,9 @@ class WatchlistStatusSender {
         console.error('❌ TELEGRAM_CHAT_ID не найден в переменных окружения');
         return;
       }
+
+             // Небольшая задержка для инициализации бота
+       await new Promise(resolve => setTimeout(resolve, 5000));
 
       await messageQueue.addMessage(chatId, message);
       console.log('✅ Статус watchlist отправлен в Telegram');

@@ -83,10 +83,28 @@ async function createSystemStatusMessage() {
         const changeSign = priceChange >= 0 ? '+' : '';
         const changeEmoji = priceChange >= 0 ? '🟢' : '🔴';
         
-        message += `   ${index + 1}. ${trade.symbol} ${emoji} (${trade.type}) - ${formatDuration(duration)} назад\n`;
-        message += `      💰 Вход: $${trade.entryPrice.toFixed(6)} → $${currentPrice.toFixed(6)} ${changeEmoji} ${changeSign}${priceChange.toFixed(2)}%\n`;
+        // Рассчитать прогресс тейк-профита по формуле: (текущая - вход)/(тейк-вход)*100
+        let takeProfitProgress = 0;
+        if (trade.type === 'Long') {
+          takeProfitProgress = ((currentPrice - trade.entryPrice) / (trade.takeProfit - trade.entryPrice)) * 100;
+        } else {
+          // Для Short сделок логика обратная
+          takeProfitProgress = ((trade.entryPrice - currentPrice) / (trade.entryPrice - trade.takeProfit)) * 100;
+        }
+        
+        // Ограничить прогресс от 0 до 100%
+        takeProfitProgress = Math.max(0, Math.min(100, takeProfitProgress));
+        
+        // Определить иконку прогресса
+        const progressEmoji = takeProfitProgress > 0 ? '🟢' : '⚪';
+        
+        message += `   ${index + 1}. ${trade.symbol} ${emoji} (${trade.type})\n`;
+        message += `      💰 Вход: $${trade.entryPrice.toFixed(6)}\n`;
+        message += `      📈 Текущая: $${currentPrice.toFixed(6)} ${changeEmoji} ${changeSign}${priceChange.toFixed(2)}%\n`;
         message += `      🛑 Стоп: $${trade.stopLoss.toFixed(6)}\n`;
         message += `      🎯 Тейк: $${trade.takeProfit.toFixed(6)}\n`;
+        message += `      📊 Прогресс: ${progressEmoji} ${takeProfitProgress.toFixed(0)}%\n`;
+        message += `      ⏱️ Время: ${formatDuration(duration)} назад\n`;
         message += `      📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease}x` : 'N/A'}\n\n`;
       });
     }

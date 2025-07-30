@@ -92,6 +92,11 @@ class TelegramMessageQueue {
       throw new Error('Бот не инициализирован');
     }
 
+    // Проверить, что бот готов к отправке сообщений
+    if (!this.bot.isPolling()) {
+      throw new Error('Бот не готов к отправке сообщений');
+    }
+
     return await this.bot.sendMessage(
       messageItem.chatId, 
       messageItem.message, 

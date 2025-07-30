@@ -197,7 +197,7 @@ class PendingAnomaliesStatsUpdater {
         totalAnomaliesProcessed: data.meta.sessionStats.totalAnomaliesProcessed + 1
       });
       
-      console.log(`✅ Аномалия ${anomaly.symbol} добавлена`);
+      console.log(`✅ Аномалия ${anomaly?.symbol || 'Unknown'} добавлена`);
     } catch (error) {
       console.error('❌ Ошибка добавления аномалии:', error.message);
       throw error;

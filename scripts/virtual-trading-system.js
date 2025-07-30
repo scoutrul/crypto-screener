@@ -7,7 +7,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const ccxt = require('ccxt');
 const { CryptoScreenerApp } = require('../src/app');
-const VirtualTradingBaseService = require('../src/domain/services/VirtualTradingBaseService');
+const { VirtualTradingBaseService } = require('../src/domain/services/VirtualTradingBaseService');
 const PendingAnomaliesStatsUpdater = require('./update-pending-anomalies-stats');
 const WatchlistStatsSync = require('./sync-watchlist-stats');
 
@@ -125,7 +125,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       try {
         console.log(`🎯 Выполнение задачи с приоритетом ${priority} (${this.taskQueue.length} в очереди)`);
         await task();
-      } catch (error) {
+    } catch (error) {
         console.error(`❌ Ошибка выполнения задачи с приоритетом ${priority}:`, error.message);
       }
       
@@ -459,7 +459,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       
       // Удалить из watchlist
       this.pendingAnomalies.delete(symbol);
-      
+
       // Сохранить данные
       this.savePendingAnomalies();
     }
@@ -472,7 +472,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     if (this.activeTrades.size === 0) {
       return; // Нет активных сделок для отслеживания
     }
-    
+
     console.log(`📊 [ПОТОК 3] Мониторинг ${this.activeTrades.size} сделок в trade list (многопоточный)...`);
     
     const batchSize = 3; // Меньший размер батча для активных сделок
@@ -492,17 +492,17 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
           const since = Date.now() - (2 * 15 * 60 * 1000); // Последние 2 свечи
           const candles = await this.fetchCandles(symbol, since, 2, 3);
           
-          if (candles.length === 0) {
+        if (candles.length === 0) {
             console.log(`⚠️ Не удалось получить данные для ${symbol}`);
             return;
-          }
-          
-          const currentPrice = this.calculateAveragePrice(candles);
+        }
+
+        const currentPrice = this.calculateAveragePrice(candles);
           const currentVolume = candles[candles.length - 1][5]; // Объем текущей свечи
-          
+        
           // Обновить последнюю цену, время и объем
-          trade.lastPrice = currentPrice;
-          trade.lastUpdateTime = new Date().toISOString();
+        trade.lastPrice = currentPrice;
+        trade.lastUpdateTime = new Date().toISOString();
           trade.currentVolume = currentVolume; // Обновляем текущий объем
           
           // Проверить условия закрытия
@@ -533,34 +533,34 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
   checkTradeExitConditions(trade, currentPrice) {
     const { symbol, type, entryPrice, stopLoss, takeProfit } = trade;
     
-    let shouldClose = false;
+        let shouldClose = false;
     let reason = '';
-    let profitLoss = 0;
-    
+        let profitLoss = 0;
+
     // Логика из базового класса
     if (type === 'Long') {
       if (currentPrice >= takeProfit) {
-        shouldClose = true;
+            shouldClose = true;
         reason = 'take_profit';
         profitLoss = ((currentPrice - entryPrice) / entryPrice) * 100;
       } else if (currentPrice <= stopLoss) {
-        shouldClose = true;
+            shouldClose = true;
         reason = 'stop_loss';
         profitLoss = ((currentPrice - entryPrice) / entryPrice) * 100;
-      }
-    } else { // Short
+          }
+        } else { // Short
       if (currentPrice <= takeProfit) {
-        shouldClose = true;
+            shouldClose = true;
         reason = 'take_profit';
         profitLoss = ((entryPrice - currentPrice) / entryPrice) * 100;
       } else if (currentPrice >= stopLoss) {
-        shouldClose = true;
+            shouldClose = true;
         reason = 'stop_loss';
         profitLoss = ((entryPrice - currentPrice) / entryPrice) * 100;
-      }
-    }
-    
-    if (shouldClose) {
+          }
+        }
+
+        if (shouldClose) {
       console.log(`🔴 ${symbol} - Закрытие сделки: ${reason} (${profitLoss.toFixed(2)}%)`);
       this.closeTrade(trade, currentPrice, reason, profitLoss);
     }
@@ -633,6 +633,18 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       second: '2-digit'
     });
     
+    // Рассчитать прогресс тейк-профита для закрытой сделки
+    let takeProfitProgress = 0;
+    if (trade.type === 'Long') {
+      takeProfitProgress = ((trade.exitPrice - trade.entryPrice) / (trade.takeProfit - trade.entryPrice)) * 100;
+    } else {
+      // Для Short сделок логика обратная
+      takeProfitProgress = ((trade.entryPrice - trade.exitPrice) / (trade.entryPrice - trade.takeProfit)) * 100;
+    }
+    
+    // Ограничить прогресс от 0 до 100%
+    takeProfitProgress = Math.max(0, Math.min(100, takeProfitProgress));
+    
     return `${symbol} → ${trade.type} ${emoji} ЗАКРЫТА
 🆔 ID: ${trade.anomalyId || trade.id || 'N/A'}
 🕐 Время закрытия: ${closeTime}
@@ -640,6 +652,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
 💰 Вход: $${trade.entryPrice.toFixed(6)}
 💰 Выход: $${trade.exitPrice.toFixed(6)}
 📊 Результат: ${profitLossText}
+🎯 Тейк: $${trade.takeProfit.toFixed(6)} (${takeProfitProgress.toFixed(0)}% прогресс)
 ⏱️ Длительность: ${Math.round(trade.duration / 1000 / 60)} минут
 🎯 Причина: ${reasonText}
 
@@ -849,8 +862,8 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       }
 
       // Рассчитать leverage (увеличение объема)
-      const volumeLeverage = (anomalyVolume / avgHistoricalVolume).toFixed(1);
-      
+      const volumeLeverage = parseFloat((anomalyVolume / avgHistoricalVolume).toFixed(1));
+
       console.log(`🚨 Аномалия объема обнаружена для ${symbol}! (${volumeLeverage}x)`);
 
       // Определение типа сделки (используем метод базового класса)
@@ -871,6 +884,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       const anomalyTime = new Date(anomalyCandle[0]);
       
       const anomaly = {
+        symbol: symbol, // Добавляем символ
         anomalyId,
         tradeType: tradeType,
         anomalyTime: anomalyTime.toISOString(),
@@ -890,7 +904,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
                       `🪙 ${symbol}\n` +
                       `📊 Тип: ${tradeType}\n` +
                       `💰 Цена: $${anomalyPrice.toFixed(6)}\n` +
-                      `📈 Объем: ${volumeLeverage.toFixed(1)}x\n` +
+                      `📈 Объем: ${volumeLeverage ? `${volumeLeverage.toFixed(1)}x` : 'N/A'}\n` +
                       `📈 Изменение цены: ${((anomalyPrice - avgHistoricalPrice) / avgHistoricalPrice * 100).toFixed(2)}%\n` +
                       `⏰ Время: ${new Date().toLocaleString('ru-RU')}\n\n` +
                       `📋 Добавлено в watchlist для мониторинга`;
@@ -946,7 +960,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
 
 💰 Вход: $${trade.entryPrice.toFixed(6)}
 🛑 Стоп: $${stopLoss.toFixed(6)}
-🎯 Тейк: $${takeProfit.toFixed(6)}
+🎯 Тейк: $${takeProfit.toFixed(6)} (0% прогресс)
 📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease}x` : 'N/A'}
 
 📈 ТЕКУЩАЯ СТАТИСТИКА:
@@ -1045,11 +1059,28 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         const changeEmoji = priceChange >= 0 ? '🟢' : '🔴';
         const changeSign = priceChange >= 0 ? '+' : '';
         
+        // Рассчитать прогресс тейк-профита по формуле: (текущая - вход)/(тейк-вход)*100
+        let takeProfitProgress = 0;
+        if (trade.type === 'Long') {
+          takeProfitProgress = ((lastPrice - trade.entryPrice) / (trade.takeProfit - trade.entryPrice)) * 100;
+        } else {
+          // Для Short сделок логика обратная
+          takeProfitProgress = ((trade.entryPrice - lastPrice) / (trade.entryPrice - trade.takeProfit)) * 100;
+        }
+        
+        // Ограничить прогресс от 0 до 100%
+        takeProfitProgress = Math.max(0, Math.min(100, takeProfitProgress));
+        
+        // Определить иконку прогресса
+        const progressEmoji = takeProfitProgress > 0 ? '🟢' : '⚪';
+        
         message += `• ${symbol} ${changeEmoji}\n`;
         message += `  🕐 Вход: ${entryTime}\n`;
         message += `  💰 Точка входа: $${trade.entryPrice.toFixed(6)}\n`;
         message += `  📈 Текущая цена: $${lastPrice.toFixed(6)}\n`;
         message += `  📊 Изменение: ${changeSign}${priceChange.toFixed(2)}%\n`;
+        message += `  🎯 Тейк: $${trade.takeProfit.toFixed(6)}\n`;
+        message += `  📊 Прогресс: ${progressEmoji} ${takeProfitProgress.toFixed(0)}%\n`;
         message += `  ⏰ Обновлено: ${lastUpdateTime}\n\n`;
       });
     }
@@ -1067,11 +1098,28 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         const changeEmoji = priceChange >= 0 ? '🟢' : '🔴';
         const changeSign = priceChange >= 0 ? '+' : '';
         
+        // Рассчитать прогресс тейк-профита по формуле: (текущая - вход)/(тейк-вход)*100
+        let takeProfitProgress = 0;
+        if (trade.type === 'Long') {
+          takeProfitProgress = ((lastPrice - trade.entryPrice) / (trade.takeProfit - trade.entryPrice)) * 100;
+        } else {
+          // Для Short сделок логика обратная
+          takeProfitProgress = ((trade.entryPrice - lastPrice) / (trade.entryPrice - trade.takeProfit)) * 100;
+        }
+        
+        // Ограничить прогресс от 0 до 100%
+        takeProfitProgress = Math.max(0, Math.min(100, takeProfitProgress));
+        
+        // Определить иконку прогресса
+        const progressEmoji = takeProfitProgress > 0 ? '🟢' : '⚪';
+        
         message += `• ${symbol} ${changeEmoji}\n`;
         message += `  🕐 Вход: ${entryTime}\n`;
         message += `  💰 Точка входа: $${trade.entryPrice.toFixed(6)}\n`;
         message += `  📈 Текущая цена: $${lastPrice.toFixed(6)}\n`;
         message += `  📊 Изменение: ${changeSign}${priceChange.toFixed(2)}%\n`;
+        message += `  🎯 Тейк: $${trade.takeProfit.toFixed(6)}\n`;
+        message += `  📊 Прогресс: ${progressEmoji} ${takeProfitProgress.toFixed(0)}%\n`;
         message += `  ⏰ Обновлено: ${lastUpdateTime}\n\n`;
       });
     }
@@ -1175,7 +1223,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
    */
   async runPendingCheck() {
     this.addTaskToQueue(async () => {
-      await this.checkPendingAnomalies();
+    await this.checkPendingAnomalies();
       this.lastPendingCheck = Date.now();
     }, 2);
   }
@@ -1186,7 +1234,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
    */
   async runActiveTradesCheck() {
     this.addTaskToQueue(async () => {
-      await this.trackActiveTrades();
+    await this.trackActiveTrades();
       this.lastActiveTradesCheck = Date.now();
     }, 1);
   }
@@ -1210,12 +1258,12 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       console.log('📦 Инициализация очереди задачами из приоритета 3...');
       this.addTaskToQueue(async () => {
         console.log('🔍 [ПОТОК 1] Инициализация поиска аномалий...');
-        await this.runAnomalyCheck();
+      await this.runAnomalyCheck();
       }, 3);
 
       // Установить интервалы для 3 потоков с приоритетной очередью
       this.activeTradesInterval = setInterval(async () => {
-        await this.runActiveTradesCheck();
+      await this.runActiveTradesCheck();
       }, this.config.activeTradesInterval); // Trade List - высший приоритет
 
       this.pendingCheckInterval = setInterval(async () => {
@@ -1398,7 +1446,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       // Синхронизировать с trading-statistics.json
       await this.watchlistStatsSync.syncWatchlistStats();
       
-      console.log(`📋 ${anomaly.symbol} добавлен в watchlist (${this.pendingAnomalies.size} всего)`);
+      console.log(`📋 ${anomaly?.symbol || 'Unknown'} добавлен в watchlist (${this.pendingAnomalies.size} всего)`);
     } catch (error) {
       console.error('❌ Ошибка добавления в watchlist:', error.message);
     }

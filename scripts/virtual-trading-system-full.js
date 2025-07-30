@@ -558,6 +558,18 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
       second: '2-digit'
     });
     
+    // Рассчитать прогресс тейк-профита для закрытой сделки
+    let takeProfitProgress = 0;
+    if (trade.type === 'Long') {
+      takeProfitProgress = ((trade.exitPrice - trade.entryPrice) / (trade.takeProfit - trade.entryPrice)) * 100;
+    } else {
+      // Для Short сделок логика обратная
+      takeProfitProgress = ((trade.entryPrice - trade.exitPrice) / (trade.entryPrice - trade.takeProfit)) * 100;
+    }
+    
+    // Ограничить прогресс от 0 до 100%
+    takeProfitProgress = Math.max(0, Math.min(100, takeProfitProgress));
+    
     return `${symbol} → ${trade.type} ${emoji} ЗАКРЫТА
 🆔 ID: ${trade.anomalyId || trade.id || 'N/A'}
 🕐 Время закрытия: ${closeTime}
@@ -565,6 +577,7 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
 💰 Вход: $${trade.entryPrice.toFixed(6)}
 💰 Выход: $${trade.exitPrice.toFixed(6)}
 📊 Результат: ${profitLossText}
+🎯 Тейк: $${trade.takeProfit.toFixed(6)} (${takeProfitProgress.toFixed(0)}% прогресс)
 ⏱️ Длительность: ${Math.round(trade.duration / 1000 / 60)} минут
 🎯 Причина: ${reasonText}
 
@@ -843,7 +856,7 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
 
 💰 Вход: $${trade.entryPrice.toFixed(6)}
 🛑 Стоп: $${stopLoss.toFixed(6)}
-🎯 Тейк: $${takeProfit.toFixed(6)}
+🎯 Тейк: $${takeProfit.toFixed(6)} (0% прогресс)
 
 📈 ТЕКУЩАЯ СТАТИСТИКА:
 • Всего сделок: ${stats.totalTrades}
@@ -892,11 +905,28 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
         const changeEmoji = priceChange >= 0 ? '🟢' : '🔴';
         const changeSign = priceChange >= 0 ? '+' : '';
         
+        // Рассчитать прогресс тейк-профита по формуле: (текущая - вход)/(тейк-вход)*100
+        let takeProfitProgress = 0;
+        if (trade.type === 'Long') {
+          takeProfitProgress = ((lastPrice - trade.entryPrice) / (trade.takeProfit - trade.entryPrice)) * 100;
+        } else {
+          // Для Short сделок логика обратная
+          takeProfitProgress = ((trade.entryPrice - lastPrice) / (trade.entryPrice - trade.takeProfit)) * 100;
+        }
+        
+        // Ограничить прогресс от 0 до 100%
+        takeProfitProgress = Math.max(0, Math.min(100, takeProfitProgress));
+        
+        // Определить иконку прогресса
+        const progressEmoji = takeProfitProgress > 0 ? '🟢' : '⚪';
+        
         message += `• ${symbol} ${changeEmoji}\n`;
         message += `  🕐 Вход: ${entryTime}\n`;
         message += `  💰 Точка входа: $${trade.entryPrice.toFixed(6)}\n`;
         message += `  📈 Текущая цена: $${lastPrice.toFixed(6)}\n`;
         message += `  📊 Изменение: ${changeSign}${priceChange.toFixed(2)}%\n`;
+        message += `  🎯 Тейк: $${trade.takeProfit.toFixed(6)}\n`;
+        message += `  📊 Прогресс: ${progressEmoji} ${takeProfitProgress.toFixed(0)}%\n`;
         message += `  ⏰ Обновлено: ${lastUpdateTime}\n\n`;
       });
     }
@@ -914,11 +944,28 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
         const changeEmoji = priceChange >= 0 ? '🟢' : '🔴';
         const changeSign = priceChange >= 0 ? '+' : '';
         
+        // Рассчитать прогресс тейк-профита по формуле: (текущая - вход)/(тейк-вход)*100
+        let takeProfitProgress = 0;
+        if (trade.type === 'Long') {
+          takeProfitProgress = ((lastPrice - trade.entryPrice) / (trade.takeProfit - trade.entryPrice)) * 100;
+        } else {
+          // Для Short сделок логика обратная
+          takeProfitProgress = ((trade.entryPrice - lastPrice) / (trade.entryPrice - trade.takeProfit)) * 100;
+        }
+        
+        // Ограничить прогресс от 0 до 100%
+        takeProfitProgress = Math.max(0, Math.min(100, takeProfitProgress));
+        
+        // Определить иконку прогресса
+        const progressEmoji = takeProfitProgress > 0 ? '🟢' : '⚪';
+        
         message += `• ${symbol} ${changeEmoji}\n`;
         message += `  🕐 Вход: ${entryTime}\n`;
         message += `  💰 Точка входа: $${trade.entryPrice.toFixed(6)}\n`;
         message += `  📈 Текущая цена: $${lastPrice.toFixed(6)}\n`;
         message += `  📊 Изменение: ${changeSign}${priceChange.toFixed(2)}%\n`;
+        message += `  🎯 Тейк: $${trade.takeProfit.toFixed(6)}\n`;
+        message += `  📊 Прогресс: ${progressEmoji} ${takeProfitProgress.toFixed(0)}%\n`;
         message += `  ⏰ Обновлено: ${lastUpdateTime}\n\n`;
       });
     }
