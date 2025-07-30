@@ -6,7 +6,7 @@
   "scripts": {
     "main": "node scripts/virtual-trading-system.js",
     "start": "node src/app.js",
-    "run": "node scripts/main-windows.js",
+    "run": "node scripts/main-universal.js",
     "dev": "set NODE_ENV=development&& node src/app.js",
     "cli": "node src/cli.js",
     "summary": "node src/cli.js summary",

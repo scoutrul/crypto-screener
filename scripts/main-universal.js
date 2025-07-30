@@ -2,12 +2,20 @@ const { spawn } = require('child_process');
 const path = require('path');
 
 /**
- * Главный скрипт для запуска всей системы (Windows версия)
+ * Универсальный главный скрипт для запуска всей системы
+ * Работает на Windows, Linux и macOS
  */
-class MainSystemWindows {
+class MainSystemUniversal {
   constructor() {
     this.processes = [];
     this.isShuttingDown = false;
+    
+    // Определяем ОС и команду npm
+    this.isWindows = process.platform === 'win32';
+    this.npmCommand = this.isWindows ? 'npm.cmd' : 'npm';
+    
+    console.log(`🖥️ ОС: ${process.platform} (${this.isWindows ? 'Windows' : 'Unix'})`);
+    console.log(`📦 Команда npm: ${this.npmCommand}`);
   }
 
   /**
@@ -16,8 +24,7 @@ class MainSystemWindows {
   spawnProcess(command, name, args = []) {
     console.log(`🚀 Запуск ${name}...`);
     
-    // Для Windows используем cmd
-    const process = spawn('npm.cmd', ['run', command, ...args], {
+    const process = spawn(this.npmCommand, ['run', command, ...args], {
       stdio: 'inherit',
       shell: true,
       cwd: path.join(__dirname, '..')
@@ -75,7 +82,7 @@ class MainSystemWindows {
    */
   async start() {
     try {
-      console.log('🚀 Запуск Crypto Screener Main System (Windows)...');
+      console.log('🚀 Запуск Crypto Screener Main System (Universal)...');
       console.log('📋 Компоненты:');
       console.log('   • Основная система торговли (monitor:virtual)');
       console.log('   • Telegram бот (bot:start)');
@@ -135,12 +142,25 @@ class MainSystemWindows {
       console.log(`   ${name}: ${status}`);
     }
   }
+
+  /**
+   * Получить информацию о системе
+   */
+  getSystemInfo() {
+    return {
+      platform: process.platform,
+      arch: process.arch,
+      nodeVersion: process.version,
+      npmCommand: this.npmCommand,
+      isWindows: this.isWindows
+    };
+  }
 }
 
 // Запуск главной системы
 if (require.main === module) {
-  const mainSystem = new MainSystemWindows();
+  const mainSystem = new MainSystemUniversal();
   mainSystem.start();
 }
 
-module.exports = MainSystemWindows; 
+module.exports = MainSystemUniversal; 
