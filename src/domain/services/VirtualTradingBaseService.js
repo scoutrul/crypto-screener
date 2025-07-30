@@ -220,6 +220,7 @@ class VirtualTradingBaseService {
           anomalyId: anomaly.anomalyId,
           watchlistTime: anomaly.watchlistTime,
           currentVolume: anomaly.currentVolume || null, // Добавляем поддержку currentVolume
+          volumeLeverage: anomaly.volumeLeverage || null, // Leverage объема
           entryLevel: anomaly.entryLevel || null, // Уровень входа
           cancelLevel: anomaly.cancelLevel || null, // Уровень отмены
           isConsolidated: anomaly.isConsolidated || false, // Флаг консолидации
@@ -546,6 +547,7 @@ class VirtualTradingBaseService {
 💰 Вход: $${trade.entryPrice.toFixed(6)}
 💰 Выход: $${trade.exitPrice.toFixed(6)}
 📊 Результат: ${profitLossText}
+📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease}x` : 'N/A'}
 ⏱️ Длительность: ${Math.round(trade.duration / 1000 / 60)} минут
 🎯 Причина: ${reasonText}
 

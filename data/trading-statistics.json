@@ -1,11 +1,11 @@
 {
-  "lastUpdated": "2025-07-30T01:16:39.402Z",
-  "totalTrades": 5,
+  "lastUpdated": "2025-07-30T01:30:10.621Z",
+  "totalTrades": 6,
   "winningTrades": 2,
-  "losingTrades": 3,
-  "winRate": 40,
-  "totalProfit": 5.70597384184596,
-  "averageProfit": 1.14,
+  "losingTrades": 4,
+  "winRate": 33.3,
+  "totalProfit": 4.532602194336377,
+  "averageProfit": 0.76,
   "bestTrade": {
     "symbol": "CRV/USDT",
     "type": "Short",
@@ -92,9 +92,21 @@
       "exitTime": "2025-07-30T01:16:39.242Z",
       "closeReason": "take_profit",
       "duration": 27055793
+    },
+    {
+      "id": "AUCTION/USDT_1753837379367",
+      "symbol": "AUCTION/USDT",
+      "type": "Long",
+      "entryPrice": 10.44,
+      "exitPrice": 10.317499999999999,
+      "profitLoss": -1.1733716475095834,
+      "entryTime": "2025-07-30T01:02:59.367Z",
+      "exitTime": "2025-07-30T01:30:10.478Z",
+      "closeReason": "stop_loss",
+      "duration": 1631111
     }
   ],
   "systemStartTime": "2025-07-29T11:30:00.000Z",
   "totalDaysRunning": 1,
-  "averageTradesPerDay": 5
+  "averageTradesPerDay": 6
 }

@@ -97,5 +97,25 @@
     "closeReason": "take_profit",
     "profitLoss": 3.0022658610271864,
     "duration": 27055793
+  },
+  {
+    "id": "AUCTION/USDT_1753837379367",
+    "anomalyId": "AUCTION_1753836488340",
+    "symbol": "AUCTION/USDT",
+    "type": "Long",
+    "entryPrice": 10.44,
+    "stopLoss": 10.3356,
+    "takeProfit": 10.7532,
+    "entryTime": "2025-07-30T01:02:59.367Z",
+    "status": "closed",
+    "virtualAmount": 1000,
+    "lastPrice": 10.317499999999999,
+    "lastUpdateTime": "2025-07-30T01:30:10.477Z",
+    "currentVolume": 1.6,
+    "exitPrice": 10.317499999999999,
+    "exitTime": "2025-07-30T01:30:10.478Z",
+    "closeReason": "stop_loss",
+    "profitLoss": -1.1733716475095834,
+    "duration": 1631111
   }
 ]

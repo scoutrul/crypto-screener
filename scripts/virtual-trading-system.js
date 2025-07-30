@@ -291,12 +291,6 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         // Создать сделку (используем метод базового класса)
         const currentVolume = candles[candles.length - 1][5]; // Объем текущей свечи
         
-        // Рассчитать увеличение объема
-        const since = Date.now() - (this.config.historicalWindow * 15 * 60 * 1000);
-        const historicalCandles = await this.fetchCandles(symbol, since, this.config.historicalWindow, 3);
-        const avgHistoricalVolume = this.calculateAverageVolume(historicalCandles);
-        const volumeIncrease = currentVolume / avgHistoricalVolume;
-        
         const trade = this.createVirtualTrade(
           symbol, 
           tradeType, 
@@ -307,8 +301,8 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
           anomaly.cancelLevel
         );
         
-        // Установить увеличение объема
-        trade.volumeIncrease = volumeIncrease;
+        // Установить leverage объема из аномалии
+        trade.volumeIncrease = anomaly.volumeLeverage;
         
         // Удалить из watchlist
         this.pendingAnomalies.delete(symbol);
@@ -794,7 +788,10 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         return;
       }
 
-      console.log(`🚨 Аномалия объема обнаружена для ${symbol}!`);
+      // Рассчитать leverage (увеличение объема)
+      const volumeLeverage = (anomalyVolume / avgHistoricalVolume).toFixed(1);
+      
+      console.log(`🚨 Аномалия объема обнаружена для ${symbol}! (${volumeLeverage}x)`);
 
       // Определение типа сделки (используем метод базового класса)
       const tradeType = this.determineTradeType(anomalyPrice, avgHistoricalPrice);
@@ -821,7 +818,8 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         anomalyCandleIndex: candles.length - 2,
         anomalyPrice: anomalyPrice,
         historicalPrice: avgHistoricalPrice,
-        currentVolume: anomalyVolume // Добавляем текущий объем свечи
+        currentVolume: anomalyVolume, // Добавляем текущий объем свечи
+        volumeLeverage: parseFloat(volumeLeverage) // Добавляем leverage объема
       });
       
       console.log(`📝 Аномалия ${symbol} добавлена в pending (${tradeType})`);
@@ -878,6 +876,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
 💰 Вход: $${trade.entryPrice.toFixed(6)}
 🛑 Стоп: $${stopLoss.toFixed(6)}
 🎯 Тейк: $${takeProfit.toFixed(6)}
+📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease}x` : 'N/A'}
 
 📈 ТЕКУЩАЯ СТАТИСТИКА:
 • Всего сделок: ${stats.totalTrades}
