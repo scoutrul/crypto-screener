@@ -35,7 +35,8 @@
     "git:check-trading": "node scripts/git-stage-trading-files.js check",
     "git:auto-trading": "node scripts/git-stage-trading-files.js auto",
     "status:send": "node scripts/send-system-status.js send",
-    "status:preview": "node scripts/send-system-status.js preview"
+    "status:preview": "node scripts/send-system-status.js preview",
+    "clear:data": "del data\\active-trades.json data\\pending-anomalies.json data\\trade-history.json data\\trading-statistics.json"
   },
   "keywords": [
     "crypto",
