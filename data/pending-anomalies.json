@@ -210,21 +210,6 @@
     "closePrice": 0.00005737
   },
   {
-    "symbol": "C/USDT",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-30T00:00:00.000Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 0.32595,
-    "historicalPrice": 0.3275416666666667,
-    "anomalyId": "C_1753834669498",
-    "watchlistTime": "2025-07-30T00:17:49.498Z",
-    "currentVolume": 1185510.8,
-    "entryLevel": 0.327846,
-    "cancelLevel": 0.321354,
-    "isConsolidated": true,
-    "closePrice": 0.3246
-  },
-  {
     "symbol": "JST/USDT",
     "tradeType": "Long",
     "anomalyTime": "2025-07-30T00:00:00.000Z",
@@ -253,21 +238,6 @@
     "cancelLevel": 0.16667924999999997,
     "isConsolidated": true,
     "closePrice": 0.16585
-  },
-  {
-    "symbol": "ORCA/USDT",
-    "tradeType": "Long",
-    "anomalyTime": "2025-07-30T00:00:00.000Z",
-    "anomalyCandleIndex": 6,
-    "anomalyPrice": 2.465,
-    "historicalPrice": 2.4816666666666665,
-    "anomalyId": "ORCA_1753835377705",
-    "watchlistTime": "2025-07-30T00:29:37.705Z",
-    "currentVolume": 77510.43,
-    "entryLevel": 2.439135,
-    "cancelLevel": 2.414865,
-    "isConsolidated": true,
-    "closePrice": 2.427
   },
   {
     "symbol": "KNC/USDT",
@@ -433,5 +403,20 @@
     "closePrice": 0.0073505,
     "entryLevel": 0.0073137475,
     "cancelLevel": 0.007387252499999999
+  },
+  {
+    "symbol": "IMX/USDT",
+    "anomalyId": "IMX_1753836158739",
+    "tradeType": "Long",
+    "anomalyTime": "2025-07-30T00:15:00.000Z",
+    "watchlistTime": "2025-07-30T00:42:38.739Z",
+    "anomalyCandleIndex": 6,
+    "anomalyPrice": 0.555,
+    "historicalPrice": 0.5606666666666666,
+    "currentVolume": 439783.53,
+    "isConsolidated": true,
+    "closePrice": 0.5495000000000001,
+    "entryLevel": 0.5522475,
+    "cancelLevel": 0.5467525000000001
   }
 ]
