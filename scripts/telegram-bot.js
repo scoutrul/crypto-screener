@@ -66,7 +66,7 @@ class CryptoTelegramBot {
                          `📋 Доступные команды:\n` +
                          `💰 /trades - Активные сделки\n` +
                          `📊 /watchlist - Статус watchlist\n` +
-                         `📈 /stats - Статистика watchlist\n` +
+                         `📈 /stats - Общая статистика\n` +
                          `📊 /trading - Полная торговая статистика\n` +
                          `📋 /status - Общий статус системы\n` +
                          `❓ /help - Справка\n\n` +
@@ -100,7 +100,7 @@ class CryptoTelegramBot {
                       `📋 Доступные команды:\n` +
                       `💰 /trades - Активные сделки\n` +
                       `📊 /watchlist - Статус watchlist\n` +
-                      `📈 /stats - Статистика watchlist\n` +
+                      `📈 /stats - Общая статистика\n` +
                       `📊 /trading - Полная торговая статистика\n` +
                       `📋 /status - Общий статус системы\n` +
                       `❓ /help - Справка\n\n` +
@@ -254,7 +254,7 @@ class CryptoTelegramBot {
                        `📋 Доступные команды:\n\n` +
                        `💰 /trades - Активные сделки\n` +
                        `📊 /watchlist - Детальный статус watchlist\n` +
-                       `📈 /stats - Статистика watchlist за 24 часа\n` +
+                       `📈 /stats - Общая статистика\n` +
                        `📊 /trading - Полная торговая статистика\n` +
                        `📋 /status - Общий статус системы\n` +
                        `❓ /help - Эта справка\n\n` +

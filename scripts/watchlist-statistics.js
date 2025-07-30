@@ -93,8 +93,16 @@ class WatchlistStatisticsAnalyzer {
     const longAnomalies = anomalies.filter(a => a.tradeType === 'Long');
     const shortAnomalies = anomalies.filter(a => a.tradeType === 'Short');
     
-    // Статистика по объемам
-    const volumeLeverages = anomalies.map(a => a.volumeLeverage).filter(v => v);
+    // Статистика по объемам с информацией о монетах
+    const volumeLeveragesWithSymbols = anomalies
+      .filter(a => a.volumeLeverage)
+      .map(a => ({
+        symbol: a.symbol,
+        leverage: a.volumeLeverage,
+        tradeType: a.tradeType
+      }));
+    
+    const volumeLeverages = volumeLeveragesWithSymbols.map(v => v.leverage);
     const avgVolumeLeverage = volumeLeverages.length > 0 
       ? (volumeLeverages.reduce((sum, v) => sum + v, 0) / volumeLeverages.length).toFixed(1)
       : 0;
@@ -140,6 +148,7 @@ class WatchlistStatisticsAnalyzer {
       profitableTrades: profitableTrades.length,
       avgProfitPercent: parseFloat(avgProfit),
       volumeLeverages: volumeLeverages,
+      volumeLeveragesWithSymbols: volumeLeveragesWithSymbols,
       watchlistTimes: watchlistTimes
     };
   }
@@ -178,11 +187,13 @@ class WatchlistStatisticsAnalyzer {
     }
     
     // Топ аномалий по leverage
-    if (detailedStats.volumeLeverages.length > 0) {
-      const sortedLeverages = detailedStats.volumeLeverages.sort((a, b) => b - a);
+    if (detailedStats.volumeLeveragesWithSymbols.length > 0) {
+      const sortedLeverages = detailedStats.volumeLeveragesWithSymbols.sort((a, b) => b.leverage - a.leverage);
       report += `🏆 ТОП-5 ПО LEVERAGE:\n`;
-      sortedLeverages.slice(0, 5).forEach((leverage, index) => {
-        report += `   ${index + 1}. ${leverage.toFixed(1)}x\n`;
+      sortedLeverages.slice(0, 5).forEach((item, index) => {
+        const symbol = item.symbol.replace('/USDT', '');
+        const emoji = item.tradeType === 'Long' ? '🟢' : '🔴';
+        report += `   ${index + 1}. ${symbol} ${emoji} ${item.leverage.toFixed(1)}x\n`;
       });
       report += `\n`;
     }
