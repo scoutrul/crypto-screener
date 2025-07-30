@@ -22,10 +22,10 @@ class VirtualTradingBaseService {
       takeProfitPercent: 0.03, // 3%
       breakEvenPercent: 0.20, // 20% для безубытка
       anomalyCooldown: 4, // 4 TF (1 час) без повторных аномалий
-      entryConfirmationTFs: 6, // 6 TF для подтверждения точки входа (новое требование)
+      entryConfirmationTFs: 12, // 12 TF для подтверждения точки входа (3 часа)
       consolidationThreshold: 0.02, // 2% для проверки консолидации
-      entryLevelPercent: 0.01, // 1% для уровня входа
-      cancelLevelPercent: 0.01, // 1% для уровня отмены
+      entryLevelPercent: 0.005, // 0.5% для уровня входа
+      cancelLevelPercent: 0.005, // 0.5% для уровня отмены
       ...config
     };
 
@@ -356,8 +356,17 @@ class VirtualTradingBaseService {
     
     console.log(`🔍 Проверка консолидации: High=${high}, Low=${low}, Range=${(consolidationRange * 100).toFixed(2)}%`);
     
-    // Если разница между High и Low больше 2%, то консолидация не подтвердилась
-    return consolidationRange < this.config.consolidationThreshold;
+    // Консолидация подтвердилась, если разница между High и Low меньше 2%
+    // Если разница >= 2%, то консолидация НЕ подтвердилась
+    const isConsolidated = consolidationRange < this.config.consolidationThreshold;
+    
+    if (isConsolidated) {
+      console.log(`✅ Консолидация подтвердилась (диапазон < ${(this.config.consolidationThreshold * 100).toFixed(1)}%)`);
+    } else {
+      console.log(`❌ Консолидация не подтвердилась (диапазон >= ${(this.config.consolidationThreshold * 100).toFixed(1)}%)`);
+    }
+    
+    return isConsolidated;
   }
 
   /**
