@@ -101,6 +101,69 @@ class NotificationService {
   }
 
   /**
+   * Отправить уведомление о новой сделке
+   * @param {Object} trade - Данные сделки
+   * @returns {Promise<void>}
+   */
+  async sendNewTradeNotification(trade) {
+    try {
+      console.log(`Sending new trade notification for ${trade.symbol}...`);
+      
+      const message = this.buildNewTradeMessage(trade);
+      await this.notificationRepository.sendTelegramMessage(message, { parseMode: 'HTML' });
+      
+      console.log('New trade notification sent successfully');
+      
+    } catch (error) {
+      console.error('Error sending new trade notification:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Построить сообщение о новой сделке
+   * @param {Object} trade - Данные сделки
+   * @returns {string} Форматированное сообщение
+   */
+  buildNewTradeMessage(trade) {
+    const symbol = trade.symbol.replace('/USDT', '');
+    const emoji = trade.type === 'Long' ? '🟢' : '🔴';
+    const stopLoss = trade.stopLoss;
+    const takeProfit = trade.takeProfit;
+
+    // Форматировать время создания сделки
+    const tradeTime = new Date(trade.entryTime).toLocaleString('ru-RU', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
+    let message = `🎯 <b>НОВАЯ СДЕЛКА: ${symbol} → ${trade.type} ${emoji}</b>\n\n`;
+    
+    if (trade.anomalyId) {
+      message += `🆔 <b>ID:</b> ${trade.anomalyId}\n`;
+    }
+    
+    message += `🕐 <b>Время:</b> ${tradeTime}\n\n`;
+    message += `💰 <b>Вход:</b> $${trade.entryPrice.toFixed(6)}\n`;
+    message += `🛑 <b>Стоп:</b> $${stopLoss.toFixed(6)}\n`;
+    message += `🎯 <b>Тейк:</b> $${takeProfit.toFixed(6)} (0% прогресс)\n`;
+    
+    if (trade.virtualAmount) {
+      message += `💵 <b>Виртуальная сумма:</b> $${trade.virtualAmount}\n`;
+    }
+    
+    if (trade.volumeIncrease) {
+      message += `📊 <b>Объем:</b> ${trade.volumeIncrease.toFixed(1)}x\n`;
+    }
+    
+    return message;
+  }
+
+  /**
    * Отправить сообщение в консоль
    * @param {string} message - Сообщение
    * @param {string} level - Уровень логирования

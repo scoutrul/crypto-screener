@@ -231,11 +231,49 @@ class CryptoTelegramBot {
       try {
         await messageQueue.addMessage(chatId, '📊 Загружаю общий статус системы...');
         
-        // Здесь можно добавить отправку общего статуса
+        // Загрузить реальные данные
+        const fs = require('fs').promises;
+        const path = require('path');
+        
+        // Получить статус watchlist
+        let watchlistStatus = '❌ Ошибка загрузки';
+        let watchlistCount = 0;
+        try {
+          const pendingAnomaliesFile = path.join(__dirname, '..', 'data', 'pending-anomalies.json');
+          const pendingData = await fs.readFile(pendingAnomaliesFile, 'utf8');
+          const parsed = JSON.parse(pendingData);
+          
+          let anomalies = [];
+          if (Array.isArray(parsed)) {
+            anomalies = parsed;
+          } else if (parsed.anomalies && Array.isArray(parsed.anomalies)) {
+            anomalies = parsed.anomalies;
+          }
+          
+          watchlistCount = anomalies.length;
+          watchlistStatus = watchlistCount > 0 ? `✅ ${watchlistCount} аномалий` : '📭 Пуст';
+        } catch (error) {
+          watchlistStatus = '❌ Ошибка загрузки';
+        }
+        
+        // Получить статус активных сделок
+        let tradesStatus = '❌ Ошибка загрузки';
+        let tradesCount = 0;
+        try {
+          const activeTradesFile = path.join(__dirname, '..', 'data', 'active-trades.json');
+          const activeTradesData = await fs.readFile(activeTradesFile, 'utf8');
+          const activeTrades = JSON.parse(activeTradesData);
+          
+          tradesCount = activeTrades.length;
+          tradesStatus = tradesCount > 0 ? `✅ ${tradesCount} сделок` : '📭 Нет активных';
+        } catch (error) {
+          tradesStatus = '❌ Ошибка загрузки';
+        }
+        
         const message = `📊 ОБЩИЙ СТАТУС СИСТЕМЫ:\n\n` +
                        `🤖 Бот: Активен\n` +
-                       `📋 Watchlist: Загружается...\n` +
-                       `💰 Активные сделки: Загружается...\n\n` +
+                       `📋 Watchlist: ${watchlistStatus}\n` +
+                       `💰 Активные сделки: ${tradesStatus}\n\n` +
                        `💡 Используйте /watchlist для детального статуса`;
         
         await messageQueue.addMessage(chatId, message);

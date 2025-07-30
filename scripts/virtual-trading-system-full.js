@@ -483,6 +483,12 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
     this.watchlist.add(symbol);
     
     console.log(`💰 Создана виртуальная сделка ${tradeType} для ${symbol} по цене $${entryPrice.toFixed(6)}`);
+    
+    // Отправить уведомление о новой сделке
+    this.sendNewTradeNotification(trade).catch(error => {
+      console.error(`❌ Ошибка отправки уведомления о новой сделке для ${symbol}:`, error.message);
+    });
+    
     return trade;
   }
 

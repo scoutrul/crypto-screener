@@ -17,7 +17,6 @@ const CONFIG = {
   maxDepositPercent: 0.02, // 2% от депозита
   stopLossPercent: 0.01, // 1% стоп-лосс
   takeProfitPercent: 0.03, // 3% тейк-профит
-  breakEvenPercent: 0.20 // 20% для перевода в безубыток
 };
 
 class AnomalyMonitor {

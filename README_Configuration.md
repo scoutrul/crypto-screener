@@ -16,7 +16,6 @@ this.config = {
   historicalWindow: 8,                 // Окно исторических данных (8 свечей = 2 часа)
   stopLossPercent: 0.01,              // Стоп-лосс (1%)
   takeProfitPercent: 0.03,            // Тейк-профит (3%)
-  breakEvenPercent: 0.20,             // Процент для безубытка (20%)
   anomalyCooldown: 4,                 // Кулдаун аномалий (4 TF = 1 час)
   entryConfirmationTFs: 6,            // TF для подтверждения входа (6 TF)
   consolidationThreshold: 0.02,        // Порог консолидации (2%)

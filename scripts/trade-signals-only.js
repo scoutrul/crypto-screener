@@ -19,7 +19,6 @@ const CONFIG = {
   maxDepositPercent: 0.02, // 2% от депозита
   stopLossPercent: 0.01, // 1%
   takeProfitPercent: 0.03, // 3%
-  breakEvenPercent: 0.20 // 20% для безубытка
 };
 
 class TradeSignalsMonitor {

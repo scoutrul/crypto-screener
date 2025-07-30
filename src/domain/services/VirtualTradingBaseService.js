@@ -22,7 +22,6 @@ class VirtualTradingBaseService {
       takeProfitPercent: 0.028, // 2.8%
       entryLevelPercent: 0.004, // 0.4% для уровня входа
       cancelLevelPercent: 0.006, // 0.6% для уровня отмены
-      breakEvenPercent: 0.20, // 20% для безубытка
       anomalyCooldown: 4, // 4 TF (1 час) без повторных аномалий
       entryConfirmationTFs: 6, // 6 TF для подтверждения точки входа (3 часа)
       ...config
@@ -539,6 +538,12 @@ class VirtualTradingBaseService {
     this.watchlist.add(symbol);
     
     console.log(`💰 Создана виртуальная сделка ${tradeType} для ${symbol} по цене $${entryPrice.toFixed(6)}`);
+    
+    // Отправить уведомление о новой сделке
+    this.sendNewTradeNotification(trade).catch(error => {
+      console.error(`❌ Ошибка отправки уведомления о новой сделке для ${symbol}:`, error.message);
+    });
+    
     return trade;
   }
 
