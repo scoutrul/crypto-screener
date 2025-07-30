@@ -6,6 +6,7 @@
   "scripts": {
     "main": "node scripts/virtual-trading-system.js",
     "start": "node src/app.js",
+    "run": "node scripts/main-windows.js",
     "dev": "set NODE_ENV=development&& node src/app.js",
     "cli": "node src/cli.js",
     "summary": "node src/cli.js summary",
@@ -36,6 +37,8 @@
     "git:auto-trading": "node scripts/git-stage-trading-files.js auto",
     "status:send": "node scripts/send-system-status.js send",
     "status:preview": "node scripts/send-system-status.js preview",
+    "watchlist:send": "node scripts/send-watchlist-status.js",
+    "bot:start": "node scripts/telegram-bot.js",
     "clear:data": "del data\\active-trades.json data\\pending-anomalies.json data\\trade-history.json data\\trading-statistics.json",
     "clean:pairs": "node scripts/clean-inactive-pairs.js"
   },

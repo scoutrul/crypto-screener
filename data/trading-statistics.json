@@ -1,0 +1,76 @@
+{
+  "lastUpdated": "2025-07-30T15:04:45.251Z",
+  "totalTrades": 3,
+  "winningTrades": 1,
+  "losingTrades": 2,
+  "winRate": 33.3,
+  "totalProfit": 1.3885844523801425,
+  "averageProfit": 0.46,
+  "bestTrade": {
+    "symbol": "ARC/USDT",
+    "type": "Long",
+    "profitLoss": 2.9578422484134195,
+    "entryTime": "2025-07-30T13:05:20.967Z"
+  },
+  "worstTrade": {
+    "symbol": "MOODENG/USDT",
+    "type": "Long",
+    "profitLoss": -0.8061147773786599,
+    "entryTime": "2025-07-30T13:01:58.075Z"
+  },
+  "longestTrade": {
+    "symbol": "ARC/USDT",
+    "type": "Long",
+    "duration": 7164146,
+    "entryTime": "2025-07-30T13:05:20.967Z"
+  },
+  "shortestTrade": {
+    "symbol": "SYS/USDT",
+    "type": "Short",
+    "duration": 951468,
+    "entryTime": "2025-07-30T14:29:21.994Z"
+  },
+  "monthlyStats": {},
+  "dailyStats": {},
+  "tradeHistory": [
+    {
+      "id": "MOODENG/USDT_1753880518075",
+      "symbol": "MOODENG/USDT",
+      "type": "Long",
+      "entryPrice": 0.179565,
+      "exitPrice": 0.1781175,
+      "profitLoss": -0.8061147773786599,
+      "entryTime": "2025-07-30T13:01:58.075Z",
+      "exitTime": "2025-07-30T13:30:09.929Z",
+      "closeReason": "stop_loss",
+      "duration": 1691854
+    },
+    {
+      "id": "SYS/USDT_1753885761994",
+      "symbol": "SYS/USDT",
+      "type": "Short",
+      "entryPrice": 0.044225,
+      "exitPrice": 0.044562500000000005,
+      "profitLoss": -0.7631430186546172,
+      "entryTime": "2025-07-30T14:29:21.994Z",
+      "exitTime": "2025-07-30T14:45:13.462Z",
+      "closeReason": "stop_loss",
+      "duration": 951468
+    },
+    {
+      "id": "ARC/USDT_1753880720967",
+      "symbol": "ARC/USDT",
+      "type": "Long",
+      "entryPrice": 0.02206,
+      "exitPrice": 0.0227125,
+      "profitLoss": 2.9578422484134195,
+      "entryTime": "2025-07-30T13:05:20.967Z",
+      "exitTime": "2025-07-30T15:04:45.113Z",
+      "closeReason": "take_profit",
+      "duration": 7164146
+    }
+  ],
+  "systemStartTime": "2025-07-30T11:41:28.711Z",
+  "totalDaysRunning": 1,
+  "averageTradesPerDay": 3
+}
