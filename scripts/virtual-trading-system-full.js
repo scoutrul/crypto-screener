@@ -369,7 +369,6 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
         return await this.exchange.fetchOHLCV(symbol, this.config.timeframe, since, limit);
       } catch (error) {
         if (error.message.includes('does not have market symbol')) {
-          console.log(`⚠️ ${symbol} не торгуется на Binance, пропускаем`);
           return [];
         } else if (error.message.includes('timeout') || error.message.includes('fetch failed')) {
           if (attempt < retries) {
@@ -737,7 +736,6 @@ class VirtualTradingSystemFull extends VirtualTradingBaseService {
       const candles = await this.fetchCandles(symbol, since, Math.max(this.config.historicalWindow, 20), 3);
       
       if (candles.length < this.config.historicalWindow) {
-        console.log(`⚠️ Недостаточно данных для ${symbol} (получено ${candles.length}/${this.config.historicalWindow})`);
         return;
       }
 

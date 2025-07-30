@@ -14,7 +14,8 @@ const TRADING_FILES = [
   'data/active-trades.json',
   'data/pending-anomalies.json',
   'data/trade-history.json',
-  'data/trading-statistics.json'
+  'data/trading-statistics.json',
+  'data/signal-statistics.json'
 ];
 
 /**

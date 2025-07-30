@@ -27,10 +27,10 @@ async function saveFilteredCoins() {
     
     // Выполнить фильтрацию без отправки в Telegram
     const params = {
-      totalLimit: 1000,        // Анализируем топ-1000 монет (один запрос)
+      totalLimit: 1250,        // Анализируем топ-1250 монет (один запрос)
       minMarketCapBTC: 40,    // Минимальная капитализация 40 BTC
       currency: 'btc',        // В BTC парах
-      maxResults: 750         // Показываем топ-200 из отфильтрованных
+      maxResults: 1250         // Показываем топ-1250 из отфильтрованных
     };
 
     // Получить монеты без отправки уведомлений
@@ -93,20 +93,27 @@ async function saveFilteredCoins() {
       lastUpdated: coin.getLastUpdated()
     }));
 
-    // Создать директорию если не существует
-    const dataDir = path.join(__dirname, '..', 'data');
-    await fs.mkdir(dataDir, { recursive: true });
+    // Meta-блок (только инфо о фильтрации)
+    const meta = {
+      source: 'CoinGecko top 1000',
+      filter: 'Binance only, exclude stablecoins',
+      params,
+      savedAt: new Date().toISOString()
+    };
+
+    // Итоговый объект
+    const result = {
+      meta,
+      coins: coinsData
+    };
 
     // Сохранить в файл
+    const dataDir = path.join(__dirname, '..', 'data');
+    await fs.mkdir(dataDir, { recursive: true });
     const filename = path.join(dataDir, 'filtered-coins.json');
-    await fs.writeFile(filename, JSON.stringify({
-      timestamp: new Date().toISOString(),
-      totalCoins: finalCoins.length,
-      params: params,
-      coins: coinsData
-    }, null, 2));
-
-    console.log(`✅ Сохранено ${finalCoins.length} монет в файл: ${filename}`);
+    await fs.writeFile(filename, JSON.stringify(result, null, 2));
+    console.log(`✅ Сохранено ${coinsData.length} монет в файл: ${filename}`);
+    console.log('META:', JSON.stringify(meta, null, 2));
     
     // Отправить уведомление о сохранении
     await notificationService.sendNotification(

@@ -71,7 +71,6 @@ class AnomalyMonitor {
         return await this.exchange.fetchOHLCV(symbol, CONFIG.timeframe, since, limit);
       } catch (error) {
         if (error.message.includes('does not have market symbol')) {
-          console.log(`⚠️ ${symbol} не торгуется на Binance, пропускаем`);
           return [];
         } else if (error.message.includes('timeout') || error.message.includes('fetch failed')) {
           if (attempt < retries) {
@@ -244,7 +243,6 @@ class AnomalyMonitor {
       const candles = await this.fetchCandles(symbol, since);
       
       if (candles.length < 8) {
-        console.log(`⚠️ Недостаточно данных для ${symbol}`);
         return;
       }
 

@@ -80,10 +80,17 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
    * Добавить задачу в приоритетную очередь
    */
   addTaskToQueue(task, priority) {
-    // Ограничиваем размер очереди до 20 задач
-    if (this.taskQueue.length >= 20) {
-      console.log(`⚠️ Очередь переполнена (${this.taskQueue.length} задач), пропускаем добавление новой задачи`);
-      return;
+    // Увеличиваем лимит очереди до 50 задач
+    if (this.taskQueue.length >= 50) {
+      // Если очередь переполнена, удаляем старые задачи с низким приоритетом
+      if (priority <= 2) { // Только для высокоприоритетных задач (1-2)
+        // Удаляем старые задачи с приоритетом 3
+        this.taskQueue = this.taskQueue.filter(item => item.priority < 3);
+        console.log(`🔄 Очищена очередь от низкоприоритетных задач, добавлена задача с приоритетом ${priority}`);
+      } else {
+        console.log(`⚠️ Очередь переполнена (${this.taskQueue.length} задач), пропускаем добавление задачи с приоритетом ${priority}`);
+        return;
+      }
     }
     
     this.taskQueue.push({ task, priority, timestamp: Date.now() });
@@ -143,7 +150,6 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         return await this.exchange.fetchOHLCV(symbol, this.config.timeframe, since, limit);
       } catch (error) {
         if (error.message.includes('does not have market symbol')) {
-          console.log(`⚠️ ${symbol} не торгуется на Binance, пропускаем`);
           return [];
         } else if (error.message.includes('timeout') || error.message.includes('fetch failed')) {
           if (attempt < retries) {
@@ -236,7 +242,6 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       const candles = await this.fetchCandles(symbol, since, this.config.entryConfirmationTFs + 1, 3);
       
       if (candles.length < this.config.entryConfirmationTFs) {
-        console.log(`⚠️ Недостаточно данных для подтверждения входа ${symbol}`);
         return;
       }
 
@@ -262,8 +267,13 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         
         if (!this.checkConsolidation(anomalyCandle)) {
           console.log(`❌ ${symbol} - Консолидация не подтвердилась, удаляем из watchlist`);
+          
+          // Записать лид как неудачную консолидацию
+          super.addLeadRecord(anomaly, 'consolidation', false);
+          
           this.pendingAnomalies.delete(symbol);
           await this.savePendingAnomalies();
+          await super.saveSignalStatistics();
           return;
         }
         
@@ -312,6 +322,9 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         // Установить leverage объема из аномалии
         trade.volumeIncrease = anomaly.volumeLeverage;
         
+        // Записать лид как сконвертированный
+        super.addLeadRecord(anomaly, 'entry', true);
+        
         // Удалить из watchlist
         this.pendingAnomalies.delete(symbol);
         
@@ -321,18 +334,29 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         // Сохранить данные (используем методы базового класса)
         await this.saveActiveTrades();
         await this.savePendingAnomalies();
+        await super.saveSignalStatistics();
         
       } else if (result === 'cancel') {
         console.log(`❌ ${symbol} - Условие отмены выполнено, удаляем из watchlist`);
+        
+        // Записать лид как отмененный
+        super.addLeadRecord(anomaly, 'cancel', false);
+        
         this.pendingAnomalies.delete(symbol);
         await this.savePendingAnomalies();
+        await super.saveSignalStatistics();
         
       } else {
         // Проверить таймаут
         if (this.checkEntryTimeout(anomaly)) {
           console.log(`⏰ ${symbol} - Таймаут подтверждения входа, удаляем из watchlist`);
+          
+          // Записать лид как таймаут
+          super.addLeadRecord(anomaly, 'timeout', false);
+          
           this.pendingAnomalies.delete(symbol);
           await this.savePendingAnomalies();
+          await super.saveSignalStatistics();
         } else {
           console.log(`⏳ ${symbol} - Ожидание выполнения условий...`);
           console.log('─'.repeat(50)); // Отбивка между сообщениями
@@ -808,7 +832,6 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       const candles = await this.fetchCandles(symbol, since, Math.max(this.config.historicalWindow, 20), 3);
       
       if (candles.length < this.config.historicalWindow) {
-        console.log(`⚠️ Недостаточно данных для ${symbol} (получено ${candles.length}/${this.config.historicalWindow})`);
         return;
       }
 
@@ -1070,84 +1093,69 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
    * Приоритет 3 - низший приоритет
    */
   async runAnomalyCheck() {
-    this.addTaskToQueue(async () => {
-      console.log('🔍 [ПОТОК 1] Поиск аномалий среди всех монет (многопоточный)...');
+    console.log('🔍 [ПОТОК 1] Поиск аномалий среди всех монет (многопоточный)...');
+    
+    // Проверить, не слишком ли часто добавляем задачи в очередь
+    const now = Date.now();
+    const timeSinceLastCheck = now - this.lastAnomalyCheck;
+    
+    // Добавляем задачи в очередь только каждые 2 минуты
+    if (timeSinceLastCheck < 2 * 60 * 1000) {
+      console.log('⏳ Слишком рано для добавления задач в очередь, пропускаем');
+      return;
+    }
+    
+    this.lastAnomalyCheck = now;
+    
+    // Фильтровать монеты, которые уже в pending или на cooldown
+    const availableCoins = this.filteredCoins.filter(coin => {
+      const symbol = `${coin.symbol}/USDT`;
+      return !this.pendingAnomalies.has(symbol) && !this.isAnomalyOnCooldown(symbol);
+    });
+    
+    console.log(`📊 Доступно для проверки: ${availableCoins.length}/${this.filteredCoins.length} монет`);
+    
+    if (availableCoins.length === 0) {
+      console.log('📊 Нет доступных монет для проверки');
+      return;
+    }
+    
+    // Разбить на батчи для многопоточности
+    const batchSize = 10;
+    const batches = [];
+    
+    for (let i = 0; i < availableCoins.length; i += batchSize) {
+      batches.push(availableCoins.slice(i, i + batchSize));
+    }
+    
+    console.log(`📦 Обработка ${batches.length} батчей по ${batchSize} монет`);
+    
+    // Обработать батчи с задержкой
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
       
-      // Фильтруем монеты, которые уже в активных сделках или pending
-      const availableCoins = this.filteredCoins.filter(coin => {
-        const symbol = `${coin.symbol}/USDT`;
-        const isInActiveTrade = this.activeTrades.has(symbol);
-        const isInPending = this.pendingAnomalies.has(symbol);
-        const isOnCooldown = this.isAnomalyOnCooldown(symbol);
-        
-        if (isInActiveTrade) {
-          console.log(`💰 ${symbol} уже в активной сделке, пропускаем`);
-          return false;
-        }
-        if (isInPending) {
-          console.log(`⏳ ${symbol} уже в pending, пропускаем`);
-          return false;
-        }
-        if (isOnCooldown) {
-          console.log(`🚫 ${symbol} на cooldown, пропускаем`);
-          return false;
-        }
-        
-        return true;
-      });
+      console.log(`📦 Обработка батча ${i + 1}/${batches.length} (${batch.length} монет)`);
       
-      console.log(`📊 Доступно для проверки: ${availableCoins.length}/${this.filteredCoins.length} монет`);
+      // Запустить все запросы в батче параллельно
+      const promises = batch.map(coin => this.checkAnomalies(coin));
+      await Promise.all(promises);
       
-      if (availableCoins.length === 0) {
-        console.log('✅ Нет доступных монет для проверки');
-        this.lastAnomalyCheck = Date.now();
-        return;
+      // Небольшая задержка между батчами
+      if (i < batches.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
+    }
+    
+    console.log('✅ [ПОТОК 1] Поиск аномалий завершен');
+    
+    // Добавить задачи в очередь только каждые 5 батчей
+    if (batches.length > 0 && (batches.length % 5 === 0)) {
+      console.log('📦 Добавление задач в очередь...');
       
-      const batchSize = 10; // Количество одновременных запросов
-      
-      // Разбить отфильтрованные монеты на батчи
-      for (let i = 0; i < availableCoins.length; i += batchSize) {
-        const batch = availableCoins.slice(i, i + batchSize);
-        
-        console.log(`📦 Обработка батча ${Math.floor(i / batchSize) + 1}/${Math.ceil(availableCoins.length / batchSize)} (${batch.length} монет)`);
-        
-        // Запустить все запросы в батче параллельно
-        const promises = batch.map(async (coin) => {
-          try {
-            await this.checkAnomalies(coin);
-          } catch (error) {
-            console.log(`⚠️ Ошибка обработки ${coin.symbol}:`, error.message);
-          }
-        });
-        
-        // Ждать завершения всех запросов в батче
-        await Promise.all(promises);
-        
-        // После каждого 5-го батча добавляем задачи с высоким приоритетом в очередь
-        if (i + batchSize < availableCoins.length && (Math.floor(i / batchSize) + 1) % 5 === 0) {
-          // Добавить задачу Trade List (приоритет 1)
-          this.addTaskToQueue(async () => {
-            console.log('📊 [ПОТОК 3] Проверка активных сделок между батчами...');
-            await this.trackActiveTrades();
-            this.lastActiveTradesCheck = Date.now();
-          }, 1);
-          
-          // Добавить задачу Watchlist (приоритет 2)
-          this.addTaskToQueue(async () => {
-            console.log('⏳ [ПОТОК 2] Проверка watchlist между батчами...');
-            await this.checkPendingAnomalies();
-            this.lastPendingCheck = Date.now();
-          }, 2);
-          
-          // Небольшая пауза для обработки высокоприоритетных задач
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
-      
-      console.log('✅ [ПОТОК 1] Поиск аномалий завершен');
-      this.lastAnomalyCheck = Date.now();
-    }, 3);
+      // Добавить задачи с разными приоритетами
+      this.addTaskToQueue(() => this.runActiveTradesCheck(), 1); // Trade List (высший приоритет)
+      this.addTaskToQueue(() => this.runPendingCheck(), 2);       // Watchlist (средний приоритет)
+    }
   }
 
   /**

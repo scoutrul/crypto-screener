@@ -67,9 +67,18 @@ class VirtualTradingBaseService {
         data = await fs.readFile(filename, 'utf8');
         console.log('📊 Загружен общий список монет');
       }
-      
       const coinsData = JSON.parse(data);
       this.filteredCoins = coinsData.coins;
+      // Выводим meta-информацию если есть
+      if (coinsData.meta) {
+        console.log('---\nMETA-ИНФО О ВЫБОРКЕ МОНЕТ:');
+        console.log(JSON.stringify(coinsData.meta, null, 2));
+        console.log('---');
+      }
+      // Выводим параметры системы
+      console.log('---\nТЕКУЩИЕ ПАРАМЕТРЫ СИСТЕМЫ:');
+      console.log(JSON.stringify(this.config, null, 2));
+      console.log('---');
       console.log(`📊 Загружено ${this.filteredCoins.length} монет для мониторинга`);
       return true;
     } catch (error) {
@@ -135,6 +144,27 @@ class VirtualTradingBaseService {
   }
 
   /**
+   * Загрузить статистику сигналов (общая логика)
+   */
+  async loadSignalStatistics() {
+    try {
+      const filename = path.join(__dirname, '..', '..', '..', 'data', 'signal-statistics.json');
+      const data = await fs.readFile(filename, 'utf8');
+      this.signalStatistics = JSON.parse(data);
+      console.log(`📊 Загружена статистика сигналов (${this.signalStatistics.totalLeads} лидов)`);
+    } catch (error) {
+      console.log('📊 Статистика сигналов не найдена, создаем новую');
+      this.signalStatistics = {
+        lastUpdated: new Date().toISOString(),
+        totalLeads: 0,
+        convertedToTrade: 0,
+        averageLeadLifetimeMinutes: 0,
+        leads: []
+      };
+    }
+  }
+
+  /**
    * Сохранить статистику торговли (общая логика)
    */
   async saveTradingStatistics() {
@@ -157,6 +187,32 @@ class VirtualTradingBaseService {
       }
     } catch (error) {
       console.error('❌ Ошибка сохранения статистики торговли:', error.message);
+    }
+  }
+
+  /**
+   * Сохранить статистику сигналов (общая логика)
+   */
+  async saveSignalStatistics() {
+    try {
+      const dataDir = path.join(__dirname, '..', '..', '..', 'data');
+      await fs.mkdir(dataDir, { recursive: true });
+      const filename = path.join(dataDir, 'signal-statistics.json');
+      
+      // Обновить статистику перед сохранением
+      this.updateSignalStatistics();
+      
+      await fs.writeFile(filename, JSON.stringify(this.signalStatistics, null, 2));
+      
+      // Автоматически добавить в Git stage
+      try {
+        const { stageTradingFiles } = require('../../../scripts/git-stage-trading-files.js');
+        stageTradingFiles();
+      } catch (error) {
+        console.log('ℹ️ Git stage не выполнен:', error.message);
+      }
+    } catch (error) {
+      console.error('❌ Ошибка сохранения статистики сигналов:', error.message);
     }
   }
 
@@ -688,42 +744,55 @@ class VirtualTradingBaseService {
   }
 
   /**
-   * Показать статистику (общая логика)
+   * Обновить статистику сигналов
+   */
+  updateSignalStatistics() {
+    if (!this.signalStatistics || this.signalStatistics.leads.length === 0) return;
+
+    const totalLeads = this.signalStatistics.leads.length;
+    const convertedLeads = this.signalStatistics.leads.filter(lead => lead.converted).length;
+    
+    // Рассчитать среднее время жизни
+    const totalLifetime = this.signalStatistics.leads.reduce((sum, lead) => sum + lead.lifetimeMinutes, 0);
+    const averageLifetime = totalLifetime / totalLeads;
+
+    this.signalStatistics = {
+      ...this.signalStatistics,
+      lastUpdated: new Date().toISOString(),
+      totalLeads,
+      convertedToTrade: convertedLeads,
+      averageLeadLifetimeMinutes: Math.round(averageLifetime * 10) / 10
+    };
+  }
+
+  /**
+   * Показать статистику торговли
    */
   showStatistics() {
-    if (!this.tradingStatistics) {
-      console.log('\n📊 Статистика не загружена');
-      return;
+    console.log('\n📊 СТАТИСТИКА ТОРГОВЛИ:');
+    console.log(`📈 Всего сделок: ${this.tradeHistory.length}`);
+    console.log(`💰 Активных сделок: ${this.activeTrades.size}`);
+    console.log(`📋 В watchlist: ${this.pendingAnomalies.size}`);
+    
+    if (this.tradingStatistics) {
+      const winRate = this.tradingStatistics.winRate || 0;
+      const totalProfit = this.tradingStatistics.totalProfit || 0;
+      console.log(`🎯 Винрейт: ${winRate}%`);
+      console.log(`💰 Общая прибыль: ${totalProfit}%`);
     }
 
-    const stats = this.tradingStatistics;
-    
-    console.log('\n📊 РАСШИРЕННАЯ СТАТИСТИКА ТОРГОВЛИ:');
-    console.log(`📈 Всего сделок: ${stats.totalTrades}`);
-    console.log(`🟢 Прибыльных: ${stats.winningTrades}`);
-    console.log(`🔴 Убыточных: ${stats.losingTrades}`);
-    console.log(`📊 Винрейт: ${stats.winRate}%`);
-    console.log(`💰 Общая прибыль: ${stats.totalProfit.toFixed(2)}%`);
-    console.log(`📊 Средняя прибыль: ${stats.averageProfit}%`);
-    
-    if (stats.bestTrade) {
-      console.log(`🏆 Лучшая сделка: ${stats.bestTrade.symbol} ${stats.bestTrade.type} +${stats.bestTrade.profitLoss.toFixed(2)}%`);
+    // Статистика сигналов
+    if (this.signalStatistics) {
+      console.log('\n📊 СТАТИСТИКА СИГНАЛОВ:');
+      console.log(`📈 Всего лидов: ${this.signalStatistics.totalLeads}`);
+      console.log(`✅ Конвертировано в сделки: ${this.signalStatistics.convertedToTrade}`);
+      console.log(`⏱️ Среднее время жизни лида: ${this.signalStatistics.averageLeadLifetimeMinutes} мин`);
+      
+      if (this.signalStatistics.totalLeads > 0) {
+        const conversionRate = ((this.signalStatistics.convertedToTrade / this.signalStatistics.totalLeads) * 100).toFixed(1);
+        console.log(`📊 Конверсия: ${conversionRate}%`);
+      }
     }
-    if (stats.worstTrade) {
-      console.log(`💀 Худшая сделка: ${stats.worstTrade.symbol} ${stats.worstTrade.type} ${stats.worstTrade.profitLoss.toFixed(2)}%`);
-    }
-    if (stats.longestTrade) {
-      console.log(`⏱️ Самая длинная: ${stats.longestTrade.symbol} ${Math.round(stats.longestTrade.duration / 1000 / 60)} минут`);
-    }
-    if (stats.shortestTrade) {
-      console.log(`⚡ Самая короткая: ${stats.shortestTrade.symbol} ${Math.round(stats.shortestTrade.duration / 1000 / 60)} минут`);
-    }
-    
-    console.log(`📅 Дней работы: ${stats.totalDaysRunning}`);
-    console.log(`📊 Сделок в день: ${stats.averageTradesPerDay}`);
-    console.log(`👀 Активных сделок: ${this.activeTrades.size}`);
-    console.log(`📋 В watchlist: ${this.watchlist.size}`);
-    console.log(`🕐 Последнее обновление: ${new Date(stats.lastUpdated).toLocaleString()}`);
   }
 
   /**
@@ -861,10 +930,22 @@ class VirtualTradingBaseService {
    */
   
   /**
-   * Инициализация системы (абстрактный)
+   * Инициализация системы (абстрактный метод)
    */
   async initialize() {
-    throw new Error('Метод initialize() должен быть переопределен в наследнике');
+    // Загрузить данные (используем методы базового класса)
+    const loaded = await this.loadFilteredCoins();
+    if (!loaded) {
+      throw new Error('Не удалось загрузить список монет');
+    }
+
+    await this.loadTradeHistory();
+    await this.loadTradingStatistics();
+    await this.loadSignalStatistics();
+    await this.loadPendingAnomalies();
+    await this.loadActiveTrades();
+
+    console.log('✅ Система инициализирована');
   }
 
   /**

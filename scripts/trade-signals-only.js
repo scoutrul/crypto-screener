@@ -68,7 +68,6 @@ class TradeSignalsMonitor {
         return await this.exchange.fetchOHLCV(symbol, CONFIG.timeframe, since, limit);
       } catch (error) {
         if (error.message.includes('does not have market symbol')) {
-          console.log(`⚠️ ${symbol} не торгуется на Binance, пропускаем`);
           return [];
         } else if (error.message.includes('timeout') || error.message.includes('fetch failed')) {
           if (attempt < retries) {
@@ -205,7 +204,6 @@ class TradeSignalsMonitor {
       const candles = await this.fetchCandles(symbol, since, CONFIG.historicalWindow);
       
       if (candles.length < CONFIG.historicalWindow) {
-        console.log(`⚠️ Недостаточно данных для ${symbol}`);
         return;
       }
 

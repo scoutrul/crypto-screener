@@ -177,21 +177,21 @@ async function createSystemStatusMessage() {
 
   // Расширенная статистика сигналов
   try {
-    // Получить данные о pending anomalies для статистики
     const pendingAnomaliesFile = path.join(__dirname, '..', 'data', 'pending-anomalies.json');
     const pendingAnomaliesData = await fs.readFile(pendingAnomaliesFile, 'utf8');
     const pendingAnomalies = JSON.parse(pendingAnomaliesData);
     
-    // Получить историю сделок для анализа конверсии
     const tradeHistoryFile = path.join(__dirname, '..', 'data', 'trade-history.json');
     const tradeHistoryData = await fs.readFile(tradeHistoryFile, 'utf8');
     const tradeHistory = JSON.parse(tradeHistoryData);
     
-    // Статистика по типам в watchlist
+    const activeTradesFile = path.join(__dirname, '..', 'data', 'active-trades.json');
+    const activeTradesData = await fs.readFile(activeTradesFile, 'utf8');
+    const activeTrades = JSON.parse(activeTradesData);
+
     const longInWatchlist = pendingAnomalies.filter(a => a.tradeType === 'Long').length;
     const shortInWatchlist = pendingAnomalies.filter(a => a.tradeType === 'Short').length;
     
-    // Статистика по объемам в watchlist
     const volumeLeverages = pendingAnomalies
       .filter(a => a.volumeLeverage)
       .map(a => a.volumeLeverage);
@@ -204,12 +204,6 @@ async function createSystemStatusMessage() {
       ? Math.max(...volumeLeverages).toFixed(1)
       : '0.0';
     
-    // Анализ конверсии (сколько сделок из watchlist превратились в активные)
-    const activeTradesFile = path.join(__dirname, '..', 'data', 'active-trades.json');
-    const activeTradesData = await fs.readFile(activeTradesFile, 'utf8');
-    const activeTrades = JSON.parse(activeTradesData);
-    
-    // Подсчитать сделки с anomalyId (которые прошли через watchlist)
     const tradesFromWatchlist = activeTrades.filter(t => t.anomalyId).length;
     const totalActiveTrades = activeTrades.length;
     const conversionRate = totalActiveTrades > 0 
@@ -224,6 +218,24 @@ async function createSystemStatusMessage() {
     message += `   ⏱️ Активных сделок: ${totalActiveTrades}\n\n`;
   } catch (error) {
     message += `📊 СТАТИСТИКА СИГНАЛОВ: Данные недоступны\n\n`;
+  }
+
+  // Статистика лидов (если файл существует)
+  try {
+    const signalStatsFile = path.join(__dirname, '..', 'data', 'signal-statistics.json');
+    const signalStatsData = await fs.readFile(signalStatsFile, 'utf8');
+    const signalStats = JSON.parse(signalStatsData);
+    
+    if (signalStats.totalLeads > 0) {
+      const conversionRate = ((signalStats.convertedToTrade / signalStats.totalLeads) * 100).toFixed(1);
+      message += `📊 СТАТИСТИКА ЛИДОВ:\n`;
+      message += `   📈 Всего лидов: ${signalStats.totalLeads}\n`;
+      message += `   ✅ Конвертировано в сделки: ${signalStats.convertedToTrade}\n`;
+      message += `   ⏱️ Среднее время жизни: ${signalStats.averageLeadLifetimeMinutes} мин\n`;
+      message += `   📊 Конверсия: ${conversionRate}%\n\n`;
+    }
+  } catch (error) {
+    // Файл статистики лидов не найден - это нормально
   }
 
   message += `🔗 Crypto Screener v2.0`;
