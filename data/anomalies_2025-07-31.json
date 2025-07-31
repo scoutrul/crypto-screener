@@ -2,11 +2,11 @@
   "meta": {
     "dayStats": {
       "date": "2025-07-31",
-      "totalAnomalies": 60,
-      "lastUpdated": "2025-07-31T17:12:43.092Z",
+      "totalAnomalies": 62,
+      "lastUpdated": "2025-07-31T17:55:14.581Z",
       "longAnomaliesCount": 33,
-      "shortAnomaliesCount": 27,
-      "averageVolumeLeverage": "18.1",
+      "shortAnomaliesCount": 29,
+      "averageVolumeLeverage": "17.8",
       "topVolumeLeverages": [
         {
           "symbol": "TFUEL/USDT",
@@ -53,8 +53,8 @@
     "fileInfo": {
       "version": "1.0",
       "description": "Historical anomalies for 2025-07-31",
-      "createdAt": "2025-07-31T17:12:43.092Z",
-      "lastModified": "2025-07-31T17:12:43.092Z"
+      "createdAt": "2025-07-31T17:55:14.581Z",
+      "lastModified": "2025-07-31T17:55:14.581Z"
     }
   },
   "anomalies": [
@@ -535,6 +535,30 @@
       "historicalPrice": 13.01,
       "currentVolume": 7404.224,
       "volumeLeverage": 10.8
+    },
+    {
+      "symbol": "HEI/USDT",
+      "anomalyId": "HEI_1753983070493",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T17:15:00.000Z",
+      "watchlistTime": "2025-07-31T17:31:10.493Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.37529999999999997,
+      "historicalPrice": 0.3715,
+      "currentVolume": 593655.3,
+      "volumeLeverage": 10.7
+    },
+    {
+      "symbol": "HEI/USDT",
+      "anomalyId": "HEI_1753983789646",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T17:15:00.000Z",
+      "watchlistTime": "2025-07-31T17:43:09.646Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.37529999999999997,
+      "historicalPrice": 0.3715,
+      "currentVolume": 593655.3,
+      "volumeLeverage": 10.7
     },
     {
       "symbol": "BAKE/USDT",

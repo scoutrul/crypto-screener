@@ -42,6 +42,7 @@
     "test:anomaly-rate-limit": "node scripts/test-anomaly-rate-limit.js",
     "demo:anomaly-rate-limit": "node scripts/demo-anomaly-rate-limit.js",
     "test:complete-system": "node scripts/test-complete-system-with-rate-limit.js",
+    "test:telegram-integration": "node scripts/test-telegram-integration.js",
     "test:websocket-system": "node scripts/test-websocket-system.js",
     "status:view": "node scripts/view-system-status.js",
     "filter:binance": "node scripts/filter-binance-coins.js",
