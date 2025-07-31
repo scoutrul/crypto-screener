@@ -17,7 +17,7 @@ class VirtualTradingBaseService {
       volumeThreshold: 8, // Объем в 8 раз больше среднего
       historicalWindow: 8, // 8 свечей (2 часа)
       consolidationThreshold: 0.015, // 1.5% для проверки консолидации
-      priceThreshold: 0.01, // 1% для определения направления
+      priceThreshold: 0.005, // 0.5% для определения направления
       stopLossPercent: 0.005, // stop 0.5%
       takeProfitPercent: 0.025, // 2.5%
       entryLevelPercent: 0.004, // 0.4% для уровня входа
@@ -1177,6 +1177,219 @@ class VirtualTradingBaseService {
    */
   async trackActiveTrades() {
     throw new Error('Метод trackActiveTrades() должен быть переопределен в наследнике');
+  }
+
+  /**
+   * Отправить уведомление о добавлении в pending anomalies
+   */
+  async sendPendingAnomalyAddedNotification(anomaly) {
+    try {
+      if (!this.notificationService) return;
+      
+      const message = this.createPendingAnomalyAddedMessage(anomaly);
+      await this.notificationService.sendTelegramMessage(message);
+      console.log('✅ Уведомление о добавлении в pending anomalies отправлено');
+    } catch (error) {
+      console.error('❌ Ошибка отправки уведомления о добавлении в pending:', error.message);
+    }
+  }
+
+  /**
+   * Создать сообщение о добавлении в pending anomalies
+   */
+  createPendingAnomalyAddedMessage(anomaly) {
+    const symbol = anomaly.symbol.replace('/USDT', '');
+    const emoji = anomaly.tradeType === 'Long' ? '🟢' : '🔴';
+    const leverageText = anomaly.volumeLeverage ? `${anomaly.volumeLeverage.toFixed(1)}x` : 'N/A';
+    
+    // Получить статистику pending anomalies
+    const pendingStats = this.getPendingAnomaliesStats();
+    
+    return `📋 ДОБАВЛЕНА В PENDING ANOMALIES: ${symbol} → ${anomaly.tradeType} ${emoji}
+
+🚨 Аномалия объема: ${leverageText}
+🆔 ID: ${anomaly.anomalyId || 'N/A'}
+⏰ Время обнаружения: ${new Date(anomaly.anomalyTime).toLocaleString('ru-RU')}
+💰 Цена аномалии: $${anomaly.anomalyPrice?.toFixed(6) || 'N/A'}
+
+📊 СТАТИСТИКА PENDING ANOMALIES:
+• Всего в ожидании: ${pendingStats.total}
+• Long: ${pendingStats.longCount} 🟢
+• Short: ${pendingStats.shortCount} 🔴
+• Средний leverage: ${pendingStats.avgLeverage}x
+
+💡 Монета будет мониториться каждые 30 секунд для подтверждения входа`;
+  }
+
+  /**
+   * Отправить уведомление об удалении из pending anomalies
+   */
+  async sendPendingAnomalyRemovedNotification(symbol, reason, anomaly = null) {
+    try {
+      if (!this.notificationService) return;
+      
+      const message = this.createPendingAnomalyRemovedMessage(symbol, reason, anomaly);
+      await this.notificationService.sendTelegramMessage(message);
+      console.log('✅ Уведомление об удалении из pending anomalies отправлено');
+    } catch (error) {
+      console.error('❌ Ошибка отправки уведомления об удалении из pending:', error.message);
+    }
+  }
+
+  /**
+   * Создать сообщение об удалении из pending anomalies
+   */
+  createPendingAnomalyRemovedMessage(symbol, reason, anomaly = null) {
+    const symbolName = symbol.replace('/USDT', '');
+    const reasonText = this.getRemovalReasonText(reason);
+    const emoji = reason === 'converted_to_trade' ? '💰' : '❌';
+    
+    // Получить статистику pending anomalies
+    const pendingStats = this.getPendingAnomaliesStats();
+    
+    let message = `${emoji} УДАЛЕНА ИЗ PENDING ANOMALIES: ${symbolName}
+
+📋 Причина: ${reasonText}
+⏰ Время удаления: ${new Date().toLocaleString('ru-RU')}`;
+
+    if (anomaly) {
+      const leverageText = anomaly.volumeLeverage ? `${anomaly.volumeLeverage.toFixed(1)}x` : 'N/A';
+      const watchlistTime = anomaly.watchlistTime ? new Date(anomaly.watchlistTime).toLocaleString('ru-RU') : 'N/A';
+      
+      message += `\n\n📊 ДЕТАЛИ АНОМАЛИИ:
+• Тип: ${anomaly.tradeType || 'N/A'}
+• Leverage: ${leverageText}
+• Время в watchlist: ${watchlistTime}
+• ID: ${anomaly.anomalyId || 'N/A'}`;
+    }
+
+    message += `\n\n📊 ОБНОВЛЕННАЯ СТАТИСТИКА PENDING:
+• Всего в ожидании: ${pendingStats.total}
+• Long: ${pendingStats.longCount} 🟢
+• Short: ${pendingStats.shortCount} 🔴
+• Средний leverage: ${pendingStats.avgLeverage}x`;
+
+    return message;
+  }
+
+  /**
+   * Получить текст причины удаления
+   */
+  getRemovalReasonText(reason) {
+    const reasons = {
+      'converted_to_trade': 'Конвертирована в сделку 💰',
+      'timeout': 'Таймаут ожидания ⏰',
+      'consolidation': 'Консолидация цены 📊',
+      'removed': 'Удалена вручную ❌',
+      'cancel_level_hit': 'Достигнут уровень отмены 🚫'
+    };
+    return reasons[reason] || 'Неизвестная причина';
+  }
+
+  /**
+   * Получить статистику pending anomalies
+   */
+  getPendingAnomaliesStats() {
+    if (!this.pendingAnomalies) {
+      return { total: 0, longCount: 0, shortCount: 0, avgLeverage: 0 };
+    }
+
+    const anomalies = Array.from(this.pendingAnomalies.values());
+    const longCount = anomalies.filter(a => a.tradeType === 'Long').length;
+    const shortCount = anomalies.filter(a => a.tradeType === 'Short').length;
+    
+    const totalLeverage = anomalies.reduce((sum, a) => sum + (a.volumeLeverage || 0), 0);
+    const avgLeverage = anomalies.length > 0 ? (totalLeverage / anomalies.length).toFixed(1) : 0;
+
+    return {
+      total: anomalies.length,
+      longCount,
+      shortCount,
+      avgLeverage
+    };
+  }
+
+  /**
+   * Отправить уведомление о входе в сделку с обоснованием
+   */
+  async sendTradeEntryNotification(trade, anomaly = null) {
+    try {
+      if (!this.notificationService) return;
+      
+      const message = this.createTradeEntryMessage(trade, anomaly);
+      await this.notificationService.sendTelegramMessage(message);
+      console.log('✅ Уведомление о входе в сделку с обоснованием отправлено');
+    } catch (error) {
+      console.error('❌ Ошибка отправки уведомления о входе в сделку:', error.message);
+    }
+  }
+
+  /**
+   * Создать сообщение о входе в сделку с обоснованием
+   */
+  createTradeEntryMessage(trade, anomaly = null) {
+    const symbol = trade.symbol.replace('/USDT', '');
+    const emoji = trade.type === 'Long' ? '🟢' : '🔴';
+    const leverageText = anomaly?.volumeLeverage ? `${anomaly.volumeLeverage.toFixed(1)}x` : 'N/A';
+    
+    // Получить текущую статистику
+    const stats = this.getCurrentStatistics();
+    
+    // Форматировать время создания сделки
+    const tradeTime = new Date(trade.entryTime).toLocaleString('ru-RU', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
+    let message = `💰 ВХОД В СДЕЛКУ: ${symbol} → ${trade.type} ${emoji}
+
+📋 ОБОСНОВАНИЕ ВХОДА:
+• Аномалия объема: ${leverageText}
+• Подтверждение движения: ✅
+• Время в watchlist: ${anomaly ? this.getWatchlistDuration(anomaly) : 'N/A'}
+• ID аномалии: ${anomaly?.anomalyId || trade.anomalyId || 'N/A'}
+
+💰 ПАРАМЕТРЫ СДЕЛКИ:
+• Вход: $${trade.entryPrice.toFixed(6)}
+• Стоп: $${trade.stopLoss.toFixed(6)}
+• Тейк: $${trade.takeProfit.toFixed(6)}
+• Виртуальная сумма: $${trade.virtualAmount}
+• Время входа: ${tradeTime}
+
+💡 БЕЗУБЫТОК: При достижении 20% прогресса к тейк-профиту
+🛑 стоп-лосс автоматически изменится на +6% от цены входа
+
+📈 ТЕКУЩАЯ СТАТИСТИКА:
+• Всего сделок: ${stats.totalTrades}
+• Прибыльных: ${stats.winningTrades} 🟢
+• Убыточных: ${stats.losingTrades} 🔴
+• Винрейт: ${stats.winRate}%
+• Активных сделок: ${this.activeTrades.size}`;
+
+    return message;
+  }
+
+  /**
+   * Получить продолжительность нахождения в watchlist
+   */
+  getWatchlistDuration(anomaly) {
+    if (!anomaly.watchlistTime) return 'N/A';
+    
+    const watchlistTime = new Date(anomaly.watchlistTime);
+    const now = new Date();
+    const durationMs = now - watchlistTime;
+    const durationMinutes = Math.round(durationMs / (1000 * 60));
+    
+    if (durationMinutes < 1) return '< 1 минуты';
+    if (durationMinutes < 60) return `${durationMinutes} мин`;
+    
+    const hours = Math.floor(durationMinutes / 60);
+    const minutes = durationMinutes % 60;
+    return `${hours}ч ${minutes}м`;
   }
 }
 

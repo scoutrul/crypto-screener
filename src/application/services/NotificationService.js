@@ -244,6 +244,35 @@ class NotificationService {
   }
 
   /**
+   * Отправить сообщение в Telegram
+   * @param {string} message - Сообщение для отправки
+   * @param {Object} options - Опции отправки
+   * @returns {Promise<void>}
+   */
+  async sendTelegramMessage(message, options = {}) {
+    try {
+      console.log('Sending Telegram message...');
+      
+      // Отправить в Telegram
+      await this.notificationRepository.sendTelegramMessage(message, options);
+      
+      // Отправить в консоль для разработки
+      if (process.env.NODE_ENV === 'development') {
+        await this.notificationRepository.sendConsoleMessage(
+          `Telegram message sent: ${message.substring(0, 100)}...`,
+          'log'
+        );
+      }
+      
+      console.log('Telegram message sent successfully');
+      
+    } catch (error) {
+      console.error('Error sending Telegram message:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Проверить доступность сервиса уведомлений
    * @returns {Promise<boolean>}
    */

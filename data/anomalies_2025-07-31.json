@@ -2,54 +2,210 @@
   "meta": {
     "dayStats": {
       "date": "2025-07-31",
-      "totalAnomalies": 8,
-      "lastUpdated": "2025-07-31T12:51:06.747Z",
-      "longAnomaliesCount": 5,
-      "shortAnomaliesCount": 3,
-      "averageVolumeLeverage": "4.7",
+      "totalAnomalies": 38,
+      "lastUpdated": "2025-07-31T14:39:16.340Z",
+      "longAnomaliesCount": 28,
+      "shortAnomaliesCount": 10,
+      "averageVolumeLeverage": "14.3",
       "topVolumeLeverages": [
         {
-          "symbol": "DUSK/USDT",
-          "leverage": 12.4
+          "symbol": "ETHW/USDT",
+          "leverage": 34
         },
         {
-          "symbol": "DEGEN/USDT",
-          "leverage": 12
+          "symbol": "ETHW/USDT",
+          "leverage": 34
         },
         {
-          "symbol": "BTC/USDT",
-          "leverage": 2.5
+          "symbol": "ETHW/USDT",
+          "leverage": 34
         },
         {
-          "symbol": "BTC/USDT",
-          "leverage": 2.5
+          "symbol": "DIA/USDT",
+          "leverage": 27.9
         },
         {
-          "symbol": "BTC/USDT",
-          "leverage": 2.5
+          "symbol": "DIA/USDT",
+          "leverage": 27.9
         },
         {
-          "symbol": "ETH/USDT",
-          "leverage": 1.8
+          "symbol": "DIA/USDT",
+          "leverage": 27.9
         },
         {
-          "symbol": "ETH/USDT",
-          "leverage": 1.8
+          "symbol": "DIA/USDT",
+          "leverage": 27.9
         },
         {
-          "symbol": "ETH/USDT",
-          "leverage": 1.8
+          "symbol": "NKN/USDT",
+          "leverage": 27.9
+        },
+        {
+          "symbol": "NKN/USDT",
+          "leverage": 27.9
+        },
+        {
+          "symbol": "STRAX/USDT",
+          "leverage": 22.4
         }
       ]
     },
     "fileInfo": {
       "version": "1.0",
       "description": "Historical anomalies for 2025-07-31",
-      "createdAt": "2025-07-31T12:51:06.747Z",
-      "lastModified": "2025-07-31T12:51:06.747Z"
+      "createdAt": "2025-07-31T14:39:16.340Z",
+      "lastModified": "2025-07-31T14:39:16.340Z"
     }
   },
   "anomalies": [
+    {
+      "symbol": "ETHW/USDT",
+      "anomalyId": "ETHW_1753967725414",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:00:00.000Z",
+      "watchlistTime": "2025-07-31T13:15:25.414Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 1.67605,
+      "historicalPrice": 1.7090416666666668,
+      "currentVolume": 407528,
+      "volumeLeverage": 34
+    },
+    {
+      "symbol": "ETHW/USDT",
+      "anomalyId": "ETHW_1753967854555",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:00:00.000Z",
+      "watchlistTime": "2025-07-31T13:17:34.555Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 1.67605,
+      "historicalPrice": 1.7090416666666668,
+      "currentVolume": 407528,
+      "volumeLeverage": 34
+    },
+    {
+      "symbol": "ETHW/USDT",
+      "anomalyId": "ETHW_1753968163435",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:00:00.000Z",
+      "watchlistTime": "2025-07-31T13:22:43.435Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 1.67605,
+      "historicalPrice": 1.7090416666666668,
+      "currentVolume": 407528,
+      "volumeLeverage": 34
+    },
+    {
+      "symbol": "DIA/USDT",
+      "anomalyId": "DIA_1753970482000",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:45:00.000Z",
+      "watchlistTime": "2025-07-31T14:01:22.000Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.78725,
+      "historicalPrice": 0.8065749999999999,
+      "currentVolume": 403320.2,
+      "volumeLeverage": 27.9
+    },
+    {
+      "symbol": "DIA/USDT",
+      "anomalyId": "DIA_1753970766029",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:45:00.000Z",
+      "watchlistTime": "2025-07-31T14:06:06.029Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.78725,
+      "historicalPrice": 0.8065749999999999,
+      "currentVolume": 403320.2,
+      "volumeLeverage": 27.9
+    },
+    {
+      "symbol": "DIA/USDT",
+      "anomalyId": "DIA_1753971048463",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:45:00.000Z",
+      "watchlistTime": "2025-07-31T14:10:48.463Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.78725,
+      "historicalPrice": 0.8065749999999999,
+      "currentVolume": 403320.2,
+      "volumeLeverage": 27.9
+    },
+    {
+      "symbol": "DIA/USDT",
+      "anomalyId": "DIA_1753971222114",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:45:00.000Z",
+      "watchlistTime": "2025-07-31T14:13:42.114Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.78725,
+      "historicalPrice": 0.8065749999999999,
+      "currentVolume": 403320.2,
+      "volumeLeverage": 27.9
+    },
+    {
+      "symbol": "NKN/USDT",
+      "anomalyId": "NKN_1753972271811",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T14:15:00.000Z",
+      "watchlistTime": "2025-07-31T14:31:11.811Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.0274,
+      "historicalPrice": 0.02781666666666667,
+      "currentVolume": 3803331,
+      "volumeLeverage": 27.9
+    },
+    {
+      "symbol": "NKN/USDT",
+      "anomalyId": "NKN_1753972459709",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T14:15:00.000Z",
+      "watchlistTime": "2025-07-31T14:34:19.709Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.0274,
+      "historicalPrice": 0.02781666666666667,
+      "currentVolume": 3803331,
+      "volumeLeverage": 27.9
+    },
+    {
+      "symbol": "STRAX/USDT",
+      "anomalyId": "STRAX_1753967757593",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T13:00:00.000Z",
+      "watchlistTime": "2025-07-31T13:15:57.593Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.05006,
+      "historicalPrice": 0.04953833333333333,
+      "currentVolume": 2546646,
+      "volumeLeverage": 22.4
+    },
+    {
+      "symbol": "STRAX/USDT",
+      "anomalyId": "STRAX_1753967973977",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T13:00:00.000Z",
+      "watchlistTime": "2025-07-31T13:19:33.977Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.05006,
+      "historicalPrice": 0.04953833333333333,
+      "currentVolume": 2546646,
+      "volumeLeverage": 22.4
+    },
+    {
+      "symbol": "ID/USDT",
+      "anomalyId": "ID_1753967777823",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:00:00.000Z",
+      "watchlistTime": "2025-07-31T13:16:17.823Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.17315,
+      "historicalPrice": 0.17535833333333337,
+      "currentVolume": 1296685,
+      "volumeLeverage": 15.5,
+      "isConsolidated": true,
+      "closePrice": 0.17165000000000002,
+      "entryLevel": 0.17233660000000003,
+      "cancelLevel": 0.17062010000000002
+    },
     {
       "symbol": "DUSK/USDT",
       "anomalyId": "DUSK_1753965092716",
@@ -85,6 +241,300 @@
       "cancelLevel": 0.0037697449999999997,
       "maxPrice": 0.0037990000000000003,
       "minPrice": 0.0037920000000000002
+    },
+    {
+      "symbol": "AVA/USDT",
+      "anomalyId": "AVA_1753969647603",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:30:00.000Z",
+      "watchlistTime": "2025-07-31T13:47:27.603Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.5674,
+      "historicalPrice": 0.5762583333333333,
+      "currentVolume": 90429.8,
+      "volumeLeverage": 11.7
+    },
+    {
+      "symbol": "AVA/USDT",
+      "anomalyId": "AVA_1753969673228",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:30:00.000Z",
+      "watchlistTime": "2025-07-31T13:47:53.228Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.5674,
+      "historicalPrice": 0.5762583333333333,
+      "currentVolume": 90429.8,
+      "volumeLeverage": 11.7,
+      "isConsolidated": true,
+      "closePrice": 0.5680000000000001,
+      "entryLevel": 0.5702720000000001,
+      "cancelLevel": 0.5645920000000001,
+      "maxPrice": 0.5689500000000001,
+      "minPrice": 0.56325
+    },
+    {
+      "symbol": "METIS/USDT",
+      "anomalyId": "METIS_1753972349832",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T14:15:00.000Z",
+      "watchlistTime": "2025-07-31T14:32:29.832Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 15.715,
+      "historicalPrice": 16.01833333333333,
+      "currentVolume": 17637.464,
+      "volumeLeverage": 11.6
+    },
+    {
+      "symbol": "METIS/USDT",
+      "anomalyId": "METIS_1753972739997",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T14:15:00.000Z",
+      "watchlistTime": "2025-07-31T14:38:59.997Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 15.715,
+      "historicalPrice": 16.01833333333333,
+      "currentVolume": 17637.464,
+      "volumeLeverage": 11.6
+    },
+    {
+      "symbol": "BAKE/USDT",
+      "anomalyId": "BAKE_1753967757367",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:00:00.000Z",
+      "watchlistTime": "2025-07-31T13:15:57.367Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.08875,
+      "historicalPrice": 0.09003333333333334,
+      "currentVolume": 943249.9,
+      "volumeLeverage": 10.2
+    },
+    {
+      "symbol": "BAKE/USDT",
+      "anomalyId": "BAKE_1753968079199",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:00:00.000Z",
+      "watchlistTime": "2025-07-31T13:21:19.199Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.08875,
+      "historicalPrice": 0.09003333333333334,
+      "currentVolume": 943249.9,
+      "volumeLeverage": 10.2
+    },
+    {
+      "symbol": "STRAX/USDT",
+      "anomalyId": "STRAX_1753968831113",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T13:15:00.000Z",
+      "watchlistTime": "2025-07-31T13:33:51.113Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.051385,
+      "historicalPrice": 0.0496,
+      "currentVolume": 5272985,
+      "volumeLeverage": 9.9
+    },
+    {
+      "symbol": "STRAX/USDT",
+      "anomalyId": "STRAX_1753969067065",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T13:15:00.000Z",
+      "watchlistTime": "2025-07-31T13:37:47.065Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.051385,
+      "historicalPrice": 0.0496,
+      "currentVolume": 5272985,
+      "volumeLeverage": 9.9
+    },
+    {
+      "symbol": "STRAX/USDT",
+      "anomalyId": "STRAX_1753969334788",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T13:15:00.000Z",
+      "watchlistTime": "2025-07-31T13:42:14.788Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.051385,
+      "historicalPrice": 0.0496,
+      "currentVolume": 5272985,
+      "volumeLeverage": 9.9
+    },
+    {
+      "symbol": "SUSHI/USDT",
+      "anomalyId": "SUSHI_1753972332537",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T14:15:00.000Z",
+      "watchlistTime": "2025-07-31T14:32:12.537Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.8135,
+      "historicalPrice": 0.8265833333333333,
+      "currentVolume": 520727.6,
+      "volumeLeverage": 9.8
+    },
+    {
+      "symbol": "SUSHI/USDT",
+      "anomalyId": "SUSHI_1753972723546",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T14:15:00.000Z",
+      "watchlistTime": "2025-07-31T14:38:43.546Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.8135,
+      "historicalPrice": 0.8265833333333333,
+      "currentVolume": 520727.6,
+      "volumeLeverage": 9.8
+    },
+    {
+      "symbol": "POL/USDT",
+      "anomalyId": "POL_1753972286017",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T14:15:00.000Z",
+      "watchlistTime": "2025-07-31T14:31:26.017Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.21055000000000001,
+      "historicalPrice": 0.21660833333333332,
+      "currentVolume": 8138552.5,
+      "volumeLeverage": 9
+    },
+    {
+      "symbol": "POL/USDT",
+      "anomalyId": "POL_1753972502476",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T14:15:00.000Z",
+      "watchlistTime": "2025-07-31T14:35:02.476Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.21055000000000001,
+      "historicalPrice": 0.21660833333333332,
+      "currentVolume": 8138552.5,
+      "volumeLeverage": 9
+    },
+    {
+      "symbol": "POL/USDT",
+      "anomalyId": "POL_1753972656691",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T14:15:00.000Z",
+      "watchlistTime": "2025-07-31T14:37:36.691Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.21055000000000001,
+      "historicalPrice": 0.21660833333333332,
+      "currentVolume": 8138552.5,
+      "volumeLeverage": 9
+    },
+    {
+      "symbol": "TFUEL/USDT",
+      "anomalyId": "TFUEL_1753972320094",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T14:15:00.000Z",
+      "watchlistTime": "2025-07-31T14:32:00.094Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.038099999999999995,
+      "historicalPrice": 0.0373325,
+      "currentVolume": 4655211,
+      "volumeLeverage": 8.8
+    },
+    {
+      "symbol": "TFUEL/USDT",
+      "anomalyId": "TFUEL_1753972708475",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T14:15:00.000Z",
+      "watchlistTime": "2025-07-31T14:38:28.475Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.038099999999999995,
+      "historicalPrice": 0.0373325,
+      "currentVolume": 4655211,
+      "volumeLeverage": 8.8
+    },
+    {
+      "symbol": "SIREN/USDT",
+      "anomalyId": "SIREN_1753967707794",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:00:00.000Z",
+      "watchlistTime": "2025-07-31T13:15:07.794Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.05858,
+      "historicalPrice": 0.05942416666666667,
+      "currentVolume": 1644314,
+      "volumeLeverage": 8.4
+    },
+    {
+      "symbol": "SIREN/USDT",
+      "anomalyId": "SIREN_1753967826589",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T13:00:00.000Z",
+      "watchlistTime": "2025-07-31T13:17:06.589Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.05858,
+      "historicalPrice": 0.05942416666666667,
+      "currentVolume": 1644314,
+      "volumeLeverage": 8.4
+    },
+    {
+      "symbol": "BTC/USDT",
+      "anomalyId": "BTC_test_1753963192252",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T11:59:52.252Z",
+      "watchlistTime": "2025-07-31T11:59:52.252Z",
+      "anomalyCandleIndex": 10,
+      "anomalyPrice": 50000,
+      "historicalPrice": 49000,
+      "currentVolume": 1000000,
+      "volumeLeverage": 2.5
+    },
+    {
+      "symbol": "BTC/USDT",
+      "anomalyId": "BTC_test_1753963290119",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T12:01:30.119Z",
+      "watchlistTime": "2025-07-31T12:01:30.119Z",
+      "anomalyCandleIndex": 10,
+      "anomalyPrice": 50000,
+      "historicalPrice": 49000,
+      "currentVolume": 1000000,
+      "volumeLeverage": 2.5
+    },
+    {
+      "symbol": "BTC/USDT",
+      "anomalyId": "BTC_test_1753963563413",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T12:06:03.413Z",
+      "watchlistTime": "2025-07-31T12:06:03.413Z",
+      "anomalyCandleIndex": 10,
+      "anomalyPrice": 50000,
+      "historicalPrice": 49000,
+      "currentVolume": 1000000,
+      "volumeLeverage": 2.5
+    },
+    {
+      "symbol": "ETH/USDT",
+      "anomalyId": "ETH_test_1753963192260",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T11:59:52.260Z",
+      "watchlistTime": "2025-07-31T11:59:52.260Z",
+      "anomalyCandleIndex": 8,
+      "anomalyPrice": 3000,
+      "historicalPrice": 3100,
+      "currentVolume": 500000,
+      "volumeLeverage": 1.8
+    },
+    {
+      "symbol": "ETH/USDT",
+      "anomalyId": "ETH_test_1753963290121",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T12:01:30.121Z",
+      "watchlistTime": "2025-07-31T12:01:30.121Z",
+      "anomalyCandleIndex": 8,
+      "anomalyPrice": 3000,
+      "historicalPrice": 3100,
+      "currentVolume": 500000,
+      "volumeLeverage": 1.8
+    },
+    {
+      "symbol": "ETH/USDT",
+      "anomalyId": "ETH_test_1753963563415",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T12:06:03.415Z",
+      "watchlistTime": "2025-07-31T12:06:03.415Z",
+      "anomalyCandleIndex": 8,
+      "anomalyPrice": 3000,
+      "historicalPrice": 3100,
+      "currentVolume": 500000,
+      "volumeLeverage": 1.8
     }
   ]
 }

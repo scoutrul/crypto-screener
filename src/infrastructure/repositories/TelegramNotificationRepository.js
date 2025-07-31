@@ -27,6 +27,12 @@ class TelegramNotificationRepository extends NotificationRepository {
         return;
       }
 
+      // Проверить, готов ли бот
+      if (!messageQueue.isBotReady()) {
+        console.warn('⚠️ Telegram бот не инициализирован, сообщение не отправлено');
+        return;
+      }
+
       await messageQueue.addMessage(this.chatId, message, options);
     } catch (error) {
       console.error('❌ Ошибка отправки сообщения в Telegram:', error.message);

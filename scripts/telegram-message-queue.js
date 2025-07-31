@@ -9,6 +9,7 @@ class TelegramMessageQueue {
     this.isProcessing = false;
     this.bot = null;
     this.delayBetweenMessages = 1000; // 1 секунда между сообщениями
+    this.isBotInitialized = false;
   }
 
   /**
@@ -16,13 +17,27 @@ class TelegramMessageQueue {
    */
   setBot(bot) {
     this.bot = bot;
+    this.isBotInitialized = true;
     console.log('📤 Telegram очередь сообщений инициализирована');
+  }
+
+  /**
+   * Проверить, инициализирован ли бот
+   */
+  isBotReady() {
+    return this.bot && this.isBotInitialized && this.bot.isPolling();
   }
 
   /**
    * Добавить сообщение в очередь
    */
   async addMessage(chatId, message, options = {}) {
+    // Проверить, готов ли бот
+    if (!this.isBotReady()) {
+      console.warn('⚠️ Telegram бот не инициализирован, сообщение не добавлено в очередь');
+      return;
+    }
+
     const messageItem = {
       chatId,
       message,
@@ -88,18 +103,13 @@ class TelegramMessageQueue {
    * Отправить одно сообщение
    */
   async sendMessage(messageItem) {
-    if (!this.bot) {
+    if (!this.isBotReady()) {
       throw new Error('Бот не инициализирован');
     }
 
-    // Проверить, что бот готов к отправке сообщений
-    if (!this.bot.isPolling()) {
-      throw new Error('Бот не готов к отправке сообщений');
-    }
-
     return await this.bot.sendMessage(
-      messageItem.chatId, 
-      messageItem.message, 
+      messageItem.chatId,
+      messageItem.message,
       messageItem.options
     );
   }

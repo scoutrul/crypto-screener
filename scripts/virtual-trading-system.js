@@ -457,10 +457,10 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         super.addLeadRecord(anomaly, 'entry', true);
         
         // Удалить из watchlist
-        await this.removeFromWatchlist(symbol, 'converted');
+        await this.removeFromWatchlist(symbol, 'converted_to_trade');
         
-        // Отправить уведомление (используем метод базового класса)
-        await this.sendNewTradeNotification(trade);
+        // Отправить уведомление о входе в сделку с обоснованием
+        await this.sendTradeEntryNotification(trade, anomaly);
         
         // Сохранить данные (используем методы базового класса)
         await this.saveActiveTrades();
@@ -592,11 +592,8 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     if (this.checkEntryTimeout(anomaly)) {
       console.log(`⏰ ${symbol} - Таймаут подтверждения входа (6 TF), удаляем из watchlist`);
       
-      // Удалить из watchlist
-      this.pendingAnomalies.delete(symbol);
-
-      // Сохранить данные
-      this.savePendingAnomalies();
+      // Удалить из watchlist с правильной причиной
+      this.removeFromWatchlist(symbol, 'timeout');
     }
   }
 
@@ -1683,6 +1680,9 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       await this.watchlistStatsSync.syncWatchlistStats();
       
       console.log(`📋 ${anomaly?.symbol || 'Unknown'} добавлен в watchlist (${this.pendingAnomalies.size} всего)`);
+      
+      // Отправить уведомление о добавлении в pending anomalies
+      await this.sendPendingAnomalyAddedNotification(anomaly);
     } catch (error) {
       console.error('❌ Ошибка добавления в watchlist:', error.message);
     }
@@ -1694,6 +1694,7 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
   async removeFromWatchlist(symbol, reason = 'removed') {
     try {
       if (this.pendingAnomalies.has(symbol)) {
+        const anomaly = this.pendingAnomalies.get(symbol);
         this.pendingAnomalies.delete(symbol);
         await this.savePendingAnomalies();
         
@@ -1704,6 +1705,14 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         await this.watchlistStatsSync.syncWatchlistStats();
         
         console.log(`❌ ${symbol} удален из watchlist (${reason})`);
+        
+        // Отправить уведомление об удалении из pending anomalies
+        // (но не отправляем если удаление по причине перехода в сделку)
+        if (reason !== 'converted_to_trade') {
+          await this.sendPendingAnomalyRemovedNotification(symbol, reason, anomaly);
+        } else {
+          console.log(`💰 ${symbol} конвертирована в сделку - уведомление об удалении не отправляется`);
+        }
       }
     } catch (error) {
       console.error('❌ Ошибка удаления из watchlist:', error.message);
