@@ -18,12 +18,18 @@ const TRADING_FILES = [
   'data/signal-statistics.json'
 ];
 
+// Динамические файлы (исторические аномалии)
+const DYNAMIC_FILES = [
+  'data/anomalies_*.json'
+];
+
 /**
  * Добавить файлы в Git stage
  */
 function stageTradingFiles() {
   let stagedCount = 0;
   
+  // Обработать статические файлы
   for (const file of TRADING_FILES) {
     try {
       // Проверить, существует ли файл
@@ -36,6 +42,30 @@ function stageTradingFiles() {
       }
     } catch (error) {
       console.error(`❌ Ошибка добавления ${file}:`, error.message);
+    }
+  }
+  
+  // Обработать динамические файлы (исторические аномалии)
+  for (const pattern of DYNAMIC_FILES) {
+    try {
+      // Найти все файлы, соответствующие паттерну
+      const dataDir = path.join(__dirname, '..', 'data');
+      const files = fs.readdirSync(dataDir);
+      
+      for (const file of files) {
+        if (file.match(/anomalies_\d{4}-\d{2}-\d{2}\.json$/)) {
+          const filePath = `data/${file}`;
+          try {
+            execSync(`git add "${filePath}"`, { stdio: 'pipe' });
+            stagedCount++;
+            console.log(`✅ Добавлен файл исторических аномалий: ${filePath}`);
+          } catch (error) {
+            console.error(`❌ Ошибка добавления ${filePath}:`, error.message);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Ошибка обработки паттерна ${pattern}:`, error.message);
     }
   }
   

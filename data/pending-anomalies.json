@@ -1,28 +1,49 @@
 {
   "meta": {
     "sessionStats": {
-      "sessionStartTime": "2025-07-31T11:18:52.102Z",
-      "lastUpdated": "2025-07-31T11:18:52.105Z",
-      "totalAnomaliesProcessed": 0,
-      "currentAnomaliesCount": 0,
+      "sessionStartTime": "2025-07-31T12:30:36.795Z",
+      "lastUpdated": "2025-07-31T12:51:15.639Z",
+      "totalAnomaliesProcessed": 1,
+      "currentAnomaliesCount": 1,
       "convertedToTrades": 0,
       "removedFromWatchlist": 0,
-      "averageVolumeLeverage": 0,
-      "averageWatchlistTimeMinutes": 0,
-      "longAnomaliesCount": 0,
+      "averageVolumeLeverage": 12,
+      "averageWatchlistTimeMinutes": 20,
+      "longAnomaliesCount": 1,
       "shortAnomaliesCount": 0,
-      "consolidatedAnomaliesCount": 0,
+      "consolidatedAnomaliesCount": 1,
       "unconsolidatedAnomaliesCount": 0,
-      "topVolumeLeverages": [],
+      "topVolumeLeverages": [
+        12
+      ],
       "conversionRate": 0,
-      "sessionDurationMinutes": 0
+      "sessionDurationMinutes": 20
     },
     "fileInfo": {
       "version": "2.0",
       "description": "Pending anomalies with session statistics",
-      "createdAt": "2025-07-31T11:18:52.102Z",
-      "lastModified": "2025-07-31T11:18:52.105Z"
+      "createdAt": "2025-07-31T12:30:36.795Z",
+      "lastModified": "2025-07-31T12:51:15.639Z"
     }
   },
-  "anomalies": []
+  "anomalies": [
+    {
+      "symbol": "DEGEN/USDT",
+      "anomalyId": "DEGEN_1753965036795",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T12:15:00.000Z",
+      "watchlistTime": "2025-07-31T12:30:36.795Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.003855,
+      "historicalPrice": 0.003931916666666667,
+      "currentVolume": 191748349,
+      "volumeLeverage": 12,
+      "isConsolidated": true,
+      "closePrice": 0.0037925,
+      "entryLevel": 0.00380767,
+      "cancelLevel": 0.0037697449999999997,
+      "maxPrice": 0.0038025000000000003,
+      "minPrice": 0.0037920000000000002
+    }
+  ]
 }

@@ -816,6 +816,42 @@ class VirtualTradingBaseService {
   }
 
   /**
+   * Добавить запись о лиде в статистику
+   */
+  addLeadRecord(anomaly, outcome, converted) {
+    if (!this.signalStatistics) {
+      this.signalStatistics = {
+        leads: [],
+        totalLeads: 0,
+        convertedToTrade: 0,
+        averageLeadLifetimeMinutes: 0,
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
+    const leadTime = new Date(anomaly.watchlistTime || anomaly.anomalyTime);
+    const now = new Date();
+    const lifetimeMinutes = Math.round((now - leadTime) / (1000 * 60));
+
+    const leadRecord = {
+      symbol: anomaly.symbol,
+      anomalyId: anomaly.anomalyId,
+      tradeType: anomaly.tradeType,
+      volumeLeverage: anomaly.volumeLeverage,
+      outcome: outcome, // 'consolidation', 'entry', 'cancel', 'timeout'
+      converted: converted,
+      watchlistTime: anomaly.watchlistTime,
+      lifetimeMinutes: lifetimeMinutes,
+      createdAt: new Date().toISOString()
+    };
+
+    this.signalStatistics.leads.push(leadRecord);
+    this.updateSignalStatistics();
+    
+    console.log(`📊 Лид ${anomaly.symbol} добавлен в статистику: ${outcome} (${converted ? 'конвертирован' : 'не конвертирован'})`);
+  }
+
+  /**
    * Обновить статистику сигналов
    */
   updateSignalStatistics() {

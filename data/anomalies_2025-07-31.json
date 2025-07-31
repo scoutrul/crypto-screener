@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "dayStats": {
+      "date": "2025-07-31",
+      "totalAnomalies": 8,
+      "lastUpdated": "2025-07-31T12:51:06.747Z",
+      "longAnomaliesCount": 5,
+      "shortAnomaliesCount": 3,
+      "averageVolumeLeverage": "4.7",
+      "topVolumeLeverages": [
+        {
+          "symbol": "DUSK/USDT",
+          "leverage": 12.4
+        },
+        {
+          "symbol": "DEGEN/USDT",
+          "leverage": 12
+        },
+        {
+          "symbol": "BTC/USDT",
+          "leverage": 2.5
+        },
+        {
+          "symbol": "BTC/USDT",
+          "leverage": 2.5
+        },
+        {
+          "symbol": "BTC/USDT",
+          "leverage": 2.5
+        },
+        {
+          "symbol": "ETH/USDT",
+          "leverage": 1.8
+        },
+        {
+          "symbol": "ETH/USDT",
+          "leverage": 1.8
+        },
+        {
+          "symbol": "ETH/USDT",
+          "leverage": 1.8
+        }
+      ]
+    },
+    "fileInfo": {
+      "version": "1.0",
+      "description": "Historical anomalies for 2025-07-31",
+      "createdAt": "2025-07-31T12:51:06.747Z",
+      "lastModified": "2025-07-31T12:51:06.747Z"
+    }
+  },
+  "anomalies": [
+    {
+      "symbol": "DUSK/USDT",
+      "anomalyId": "DUSK_1753965092716",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T12:15:00.000Z",
+      "watchlistTime": "2025-07-31T12:31:32.716Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.06609999999999999,
+      "historicalPrice": 0.0668,
+      "currentVolume": 584774,
+      "volumeLeverage": 12.4,
+      "isConsolidated": true,
+      "closePrice": 0.06565,
+      "entryLevel": 0.0659126,
+      "cancelLevel": 0.0652561,
+      "maxPrice": 0.06570000000000001,
+      "minPrice": 0.0651
+    },
+    {
+      "symbol": "DEGEN/USDT",
+      "anomalyId": "DEGEN_1753965036795",
+      "tradeType": "Long",
+      "anomalyTime": "2025-07-31T12:15:00.000Z",
+      "watchlistTime": "2025-07-31T12:30:36.795Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.003855,
+      "historicalPrice": 0.003931916666666667,
+      "currentVolume": 191748349,
+      "volumeLeverage": 12,
+      "isConsolidated": true,
+      "closePrice": 0.0037925,
+      "entryLevel": 0.00380767,
+      "cancelLevel": 0.0037697449999999997,
+      "maxPrice": 0.0037990000000000003,
+      "minPrice": 0.0037920000000000002
+    }
+  ]
+}

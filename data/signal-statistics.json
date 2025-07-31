@@ -1,0 +1,19 @@
+{
+  "leads": [
+    {
+      "symbol": "DUSK/USDT",
+      "anomalyId": "DUSK_1753965092716",
+      "tradeType": "Long",
+      "volumeLeverage": 12.4,
+      "outcome": "cancel",
+      "converted": false,
+      "watchlistTime": "2025-07-31T12:31:32.716Z",
+      "lifetimeMinutes": 20,
+      "createdAt": "2025-07-31T12:51:15.638Z"
+    }
+  ],
+  "totalLeads": 1,
+  "convertedToTrade": 0,
+  "averageLeadLifetimeMinutes": 20,
+  "lastUpdated": "2025-07-31T12:51:15.641Z"
+}

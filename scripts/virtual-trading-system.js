@@ -51,6 +51,117 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     this.activeTradesInterval = null;      // Поток 3: 30 секунд
     this.pendingAnomaliesStatsUpdater = new PendingAnomaliesStatsUpdater();
     this.watchlistStatsSync = new WatchlistStatsSync();
+    
+    // Исторические аномалии
+    this.historicalAnomalies = new Map(); // Кэш аномалий за текущий день
+    this.currentDay = this.getCurrentDayString();
+  }
+
+  /**
+   * Получить строку текущего дня в формате YYYY-MM-DD
+   */
+  getCurrentDayString() {
+    const now = new Date();
+    return now.toISOString().split('T')[0]; // YYYY-MM-DD
+  }
+
+  /**
+   * Получить путь к файлу исторических аномалий для указанного дня
+   */
+  getHistoricalAnomaliesFilePath(dayString = null) {
+    const day = dayString || this.getCurrentDayString();
+    return path.join(__dirname, '..', 'data', `anomalies_${day}.json`);
+  }
+
+  /**
+   * Загрузить исторические аномалии за день
+   */
+  async loadHistoricalAnomalies(dayString = null) {
+    try {
+      const filePath = this.getHistoricalAnomaliesFilePath(dayString);
+      const data = await fs.readFile(filePath, 'utf8');
+      const parsed = JSON.parse(data);
+      
+      if (parsed.anomalies && Array.isArray(parsed.anomalies)) {
+        return parsed.anomalies;
+      } else if (Array.isArray(parsed)) {
+        // Старая структура
+        return parsed;
+      } else {
+        return [];
+      }
+    } catch (error) {
+      // Файл не существует или пустой
+      return [];
+    }
+  }
+
+  /**
+   * Сохранить аномалию в исторический файл
+   */
+  async saveAnomalyToHistory(anomaly) {
+    try {
+      const currentDay = this.getCurrentDayString();
+      
+      // Проверить, не изменился ли день
+      if (currentDay !== this.currentDay) {
+        // День изменился, сохранить текущие аномалии и начать новый день
+        await this.saveHistoricalAnomaliesForDay(this.currentDay);
+        this.currentDay = currentDay;
+        this.historicalAnomalies.clear();
+      }
+      
+      // Добавить аномалию в кэш текущего дня
+      this.historicalAnomalies.set(anomaly.anomalyId, anomaly);
+      
+      // Сохранить в файл
+      await this.saveHistoricalAnomaliesForDay(currentDay);
+      
+      console.log(`📊 Аномалия ${anomaly.symbol} сохранена в историю (${this.historicalAnomalies.size} за день)`);
+    } catch (error) {
+      console.error('❌ Ошибка сохранения аномалии в историю:', error.message);
+    }
+  }
+
+  /**
+   * Сохранить исторические аномалии за день
+   */
+  async saveHistoricalAnomaliesForDay(dayString) {
+    try {
+      const filePath = this.getHistoricalAnomaliesFilePath(dayString);
+      const anomalies = Array.from(this.historicalAnomalies.values());
+      
+      // Создать структуру с мета-информацией
+      const data = {
+        meta: {
+          dayStats: {
+            date: dayString,
+            totalAnomalies: anomalies.length,
+            lastUpdated: new Date().toISOString(),
+            longAnomaliesCount: anomalies.filter(a => a.tradeType === 'Long').length,
+            shortAnomaliesCount: anomalies.filter(a => a.tradeType === 'Short').length,
+            averageVolumeLeverage: anomalies.length > 0 ? 
+              (anomalies.reduce((sum, a) => sum + (a.volumeLeverage || 0), 0) / anomalies.length).toFixed(1) : 0,
+            topVolumeLeverages: anomalies
+              .sort((a, b) => (b.volumeLeverage || 0) - (a.volumeLeverage || 0))
+              .slice(0, 10)
+              .map(a => ({ symbol: a.symbol, leverage: a.volumeLeverage }))
+          },
+          fileInfo: {
+            version: "1.0",
+            description: `Historical anomalies for ${dayString}`,
+            createdAt: new Date().toISOString(),
+            lastModified: new Date().toISOString()
+          }
+        },
+        anomalies: anomalies
+      };
+      
+      await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+      console.log(`💾 Сохранено ${anomalies.length} аномалий в историю за ${dayString}`);
+    } catch (error) {
+      console.error(`❌ Ошибка сохранения исторических аномалий за ${dayString}:`, error.message);
+    }
   }
 
   /**
@@ -73,6 +184,13 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     await this.loadTradingStatistics();
     await this.loadPendingAnomalies();
     await this.loadActiveTrades();
+    
+    // Загрузить исторические аномалии за текущий день
+    const todayAnomalies = await this.loadHistoricalAnomalies();
+    todayAnomalies.forEach(anomaly => {
+      this.historicalAnomalies.set(anomaly.anomalyId, anomaly);
+    });
+    console.log(`📊 Загружено ${todayAnomalies.length} исторических аномалий за сегодня`);
 
     // Установить сервис уведомлений
     if (this.app && this.app.container) {
@@ -229,13 +347,23 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
    */
   determineTradeType(anomalyPrice, historicalPrice) {
     const priceDiff = (anomalyPrice - historicalPrice) / historicalPrice;
+    const priceDiffPercent = priceDiff * 100;
+    
+    console.log(`📊 Анализ типа сделки:`);
+    console.log(`   💰 Аномальная цена: $${anomalyPrice.toFixed(6)}`);
+    console.log(`   📈 Историческая цена: $${historicalPrice.toFixed(6)}`);
+    console.log(`   📊 Изменение цены: ${priceDiffPercent.toFixed(2)}%`);
+    console.log(`   🎯 Порог: ${(this.config.priceThreshold * 100).toFixed(2)}%`);
     
     if (priceDiff > this.config.priceThreshold) {
+      console.log(`   ✅ Определен тип: Short (изменение > ${(this.config.priceThreshold * 100).toFixed(2)}%)`);
       return 'Short';
     } else if (priceDiff < -this.config.priceThreshold) {
+      console.log(`   ✅ Определен тип: Long (изменение < -${(this.config.priceThreshold * 100).toFixed(2)}%)`);
       return 'Long';
     }
     
+    console.log(`   ❌ Тип не определен (изменение в пределах ±${(this.config.priceThreshold * 100).toFixed(2)}%)`);
     return null;
   }
 
@@ -843,6 +971,37 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       console.log(`📊 Максимальный leverage: ${maxLeverage > 0 ? maxLeverage.toFixed(1) + 'x' : 'N/A'}`);
       console.log(`📊 Минимальный leverage: ${minLeverage < Infinity ? minLeverage.toFixed(1) + 'x' : 'N/A'}`);
     }
+    
+    // Добавить статистику исторических аномалий
+    if (this.historicalAnomalies.size > 0) {
+      console.log('\n📊 СТАТИСТИКА ИСТОРИЧЕСКИХ АНОМАЛИЙ (сегодня):');
+      console.log(`📋 Всего аномалий за день: ${this.historicalAnomalies.size}`);
+      
+      let longCount = 0, shortCount = 0;
+      let totalVolumeLeverage = 0;
+      let maxLeverage = 0;
+      let minLeverage = Infinity;
+      
+      this.historicalAnomalies.forEach(anomaly => {
+        if (anomaly.tradeType === 'Long') longCount++;
+        else shortCount++;
+        
+        if (anomaly.volumeLeverage) {
+          totalVolumeLeverage += anomaly.volumeLeverage;
+          maxLeverage = Math.max(maxLeverage, anomaly.volumeLeverage);
+          minLeverage = Math.min(minLeverage, anomaly.volumeLeverage);
+        }
+      });
+      
+      const avgLeverage = totalVolumeLeverage > 0 ? (totalVolumeLeverage / this.historicalAnomalies.size).toFixed(1) : 0;
+      
+      console.log(`📈 Long аномалии: ${longCount}`);
+      console.log(`📉 Short аномалии: ${shortCount}`);
+      console.log(`📊 Средний leverage: ${avgLeverage}x`);
+      console.log(`📊 Максимальный leverage: ${maxLeverage > 0 ? maxLeverage.toFixed(1) + 'x' : 'N/A'}`);
+      console.log(`📊 Минимальный leverage: ${minLeverage < Infinity ? minLeverage.toFixed(1) + 'x' : 'N/A'}`);
+      console.log(`📁 Файл: anomalies_${this.currentDay}.json`);
+    }
   }
 
   /**
@@ -878,9 +1037,32 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       const volumeLeverage = parseFloat((anomalyVolume / avgHistoricalVolume).toFixed(1));
 
       console.log(`🚨 Аномалия объема обнаружена для ${symbol}! (${volumeLeverage}x)`);
+      console.log(`📊 Детали аномалии:`);
+      console.log(`   📈 Аномальный объем: ${anomalyVolume.toLocaleString()}`);
+      console.log(`   📊 Средний объем: ${avgHistoricalVolume.toLocaleString()}`);
+      console.log(`   💰 Аномальная цена: $${anomalyPrice.toFixed(6)}`);
+      console.log(`   📈 Историческая цена: $${avgHistoricalPrice.toFixed(6)}`);
 
       // Определение типа сделки (используем метод базового класса)
-      const tradeType = this.determineTradeType(anomalyPrice, avgHistoricalPrice);
+      let tradeType = this.determineTradeType(anomalyPrice, avgHistoricalPrice);
+      
+      // Если тип не определен, но leverage очень высокий, попробуем снизить порог
+      if (!tradeType && volumeLeverage > 20) {
+        console.log(`🔥 Очень высокий leverage (${volumeLeverage}x), пробуем сниженный порог...`);
+        
+        // Временно снизить порог для определения типа сделки
+        const originalThreshold = this.config.priceThreshold;
+        this.config.priceThreshold = 0.005; // 0.5% вместо 1%
+        
+        tradeType = this.determineTradeType(anomalyPrice, avgHistoricalPrice);
+        
+        // Восстановить оригинальный порог
+        this.config.priceThreshold = originalThreshold;
+        
+        if (tradeType) {
+          console.log(`✅ Тип сделки определен со сниженным порогом: ${tradeType}`);
+        }
+      }
       
       if (!tradeType) {
         console.log(`⚠️ Неопределенный тип сделки для ${symbol}`);
@@ -911,6 +1093,9 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       
       // Добавить в watchlist
       await this.addToWatchlist(anomaly);
+      
+      // Сохранить в историю
+      await this.saveAnomalyToHistory(anomaly);
       
       // Отправить уведомление
       const message = `🚨 НОВАЯ АНОМАЛИЯ ОБНАРУЖЕНА!\n\n` +
@@ -1180,12 +1365,45 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     this.lastAnomalyCheck = now;
     
     // Фильтровать монеты, которые уже в pending или на cooldown
+    const pendingSymbols = Array.from(this.pendingAnomalies.keys());
+    const cooldownSymbols = Array.from(this.anomalyCooldowns.keys());
+    
     const availableCoins = this.filteredCoins.filter(coin => {
       const symbol = `${coin.symbol}/USDT`;
-      return !this.pendingAnomalies.has(symbol) && !this.isAnomalyOnCooldown(symbol);
+      return !this.pendingAnomalies.has(symbol) && 
+             !this.isAnomalyOnCooldown(symbol) && 
+             !this.activeTrades.has(symbol);
     });
     
-    console.log(`📊 Доступно для проверки: ${availableCoins.length}/${this.filteredCoins.length} монет`);
+    const excludedFromPending = this.filteredCoins.filter(coin => {
+      const symbol = `${coin.symbol}/USDT`;
+      return this.pendingAnomalies.has(symbol);
+    });
+    
+    const excludedFromCooldown = this.filteredCoins.filter(coin => {
+      const symbol = `${coin.symbol}/USDT`;
+      return this.isAnomalyOnCooldown(symbol);
+    });
+    
+    const excludedFromActiveTrades = this.filteredCoins.filter(coin => {
+      const symbol = `${coin.symbol}/USDT`;
+      return this.activeTrades.has(symbol);
+    });
+    
+    console.log(`📊 Статистика фильтрации:`);
+    console.log(`   📋 Всего монет: ${this.filteredCoins.length}`);
+    console.log(`   ✅ Доступно для проверки: ${availableCoins.length}`);
+    console.log(`   ⏳ Исключено (в pending): ${excludedFromPending.length}`);
+    console.log(`   🚫 Исключено (на cooldown): ${excludedFromCooldown.length}`);
+    console.log(`   💰 Исключено (активные сделки): ${excludedFromActiveTrades.length}`);
+    
+    if (excludedFromPending.length > 0) {
+      console.log(`   📋 Монеты в pending: ${excludedFromPending.map(coin => coin.symbol).join(', ')}`);
+    }
+    
+    if (excludedFromActiveTrades.length > 0) {
+      console.log(`   💰 Активные сделки: ${excludedFromActiveTrades.map(coin => coin.symbol).join(', ')}`);
+    }
     
     if (availableCoins.length === 0) {
       console.log('📊 Нет доступных монет для проверки');
@@ -1350,6 +1568,11 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     await this.saveTradeHistory();
     await this.savePendingAnomalies();
     await this.saveActiveTrades();
+    
+    // Сохранить исторические аномалии за текущий день
+    if (this.historicalAnomalies.size > 0) {
+      await this.saveHistoricalAnomaliesForDay(this.currentDay);
+    }
     
     if (this.app) {
       await this.app.stop();
