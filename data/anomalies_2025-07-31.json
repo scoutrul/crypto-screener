@@ -2,11 +2,11 @@
   "meta": {
     "dayStats": {
       "date": "2025-07-31",
-      "totalAnomalies": 58,
-      "lastUpdated": "2025-07-31T16:27:21.918Z",
+      "totalAnomalies": 60,
+      "lastUpdated": "2025-07-31T17:12:43.092Z",
       "longAnomaliesCount": 33,
-      "shortAnomaliesCount": 25,
-      "averageVolumeLeverage": "18.3",
+      "shortAnomaliesCount": 27,
+      "averageVolumeLeverage": "18.1",
       "topVolumeLeverages": [
         {
           "symbol": "TFUEL/USDT",
@@ -53,8 +53,8 @@
     "fileInfo": {
       "version": "1.0",
       "description": "Historical anomalies for 2025-07-31",
-      "createdAt": "2025-07-31T16:27:21.918Z",
-      "lastModified": "2025-07-31T16:27:21.918Z"
+      "createdAt": "2025-07-31T17:12:43.092Z",
+      "lastModified": "2025-07-31T17:12:43.092Z"
     }
   },
   "anomalies": [
@@ -397,6 +397,30 @@
       "cancelLevel": 0.0037697449999999997,
       "maxPrice": 0.0037990000000000003,
       "minPrice": 0.0037920000000000002
+    },
+    {
+      "symbol": "ONDO/USDT",
+      "anomalyId": "ONDO_1753980490933",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T16:30:00.000Z",
+      "watchlistTime": "2025-07-31T16:48:10.933Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.96915,
+      "historicalPrice": 0.9533416666666668,
+      "currentVolume": 3414777,
+      "volumeLeverage": 11.8
+    },
+    {
+      "symbol": "ONDO/USDT",
+      "anomalyId": "ONDO_1753980722059",
+      "tradeType": "Short",
+      "anomalyTime": "2025-07-31T16:30:00.000Z",
+      "watchlistTime": "2025-07-31T16:52:02.059Z",
+      "anomalyCandleIndex": 6,
+      "anomalyPrice": 0.96915,
+      "historicalPrice": 0.9533416666666668,
+      "currentVolume": 3414777,
+      "volumeLeverage": 11.8
     },
     {
       "symbol": "AVA/USDT",

@@ -1,43 +1,28 @@
 {
   "meta": {
     "sessionStats": {
-      "sessionStartTime": "2025-07-31T16:27:21.912Z",
-      "lastUpdated": "2025-07-31T16:27:21.915Z",
-      "totalAnomaliesProcessed": 2,
-      "currentAnomaliesCount": 1,
+      "sessionStartTime": "2025-07-31T17:12:42.919Z",
+      "lastUpdated": "2025-07-31T17:12:42.920Z",
+      "totalAnomaliesProcessed": 0,
+      "currentAnomaliesCount": 0,
       "convertedToTrades": 0,
       "removedFromWatchlist": 0,
-      "averageVolumeLeverage": 10.8,
+      "averageVolumeLeverage": 0,
       "averageWatchlistTimeMinutes": 0,
       "longAnomaliesCount": 0,
-      "shortAnomaliesCount": 1,
+      "shortAnomaliesCount": 0,
       "consolidatedAnomaliesCount": 0,
       "unconsolidatedAnomaliesCount": 0,
-      "topVolumeLeverages": [
-        10.8
-      ],
+      "topVolumeLeverages": [],
       "conversionRate": 0,
       "sessionDurationMinutes": 0
     },
     "fileInfo": {
       "version": "2.0",
       "description": "Pending anomalies with session statistics",
-      "createdAt": "2025-07-31T16:27:21.912Z",
-      "lastModified": "2025-07-31T16:27:21.915Z"
+      "createdAt": "2025-07-31T17:12:42.919Z",
+      "lastModified": "2025-07-31T17:12:42.920Z"
     }
   },
-  "anomalies": [
-    {
-      "symbol": "GMX/USDT",
-      "anomalyId": "GMX_1753979241912",
-      "tradeType": "Short",
-      "anomalyTime": "2025-07-31T16:00:00.000Z",
-      "watchlistTime": "2025-07-31T16:27:21.912Z",
-      "anomalyCandleIndex": 6,
-      "anomalyPrice": 13.08,
-      "historicalPrice": 13.01,
-      "currentVolume": 7404.224,
-      "volumeLeverage": 10.8
-    }
-  ]
+  "anomalies": []
 }

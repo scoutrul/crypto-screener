@@ -6,10 +6,12 @@
 const fs = require('fs').promises;
 const path = require('path');
 const ccxt = require('ccxt');
+const telegramBotSingleton = require('./telegram-bot-singleton');
 const { CryptoScreenerApp } = require('../src/app');
 const { VirtualTradingBaseService } = require('../src/domain/services/VirtualTradingBaseService');
 const PendingAnomaliesStatsUpdater = require('./update-pending-anomalies-stats');
 const WatchlistStatsSync = require('./sync-watchlist-stats');
+const messageQueue = require('./telegram-message-queue');
 
 // Конфигурация для REST API системы (наследуется из базового класса)
 const CONFIG = {
@@ -44,6 +46,12 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     this.lastActiveTradesCheck = 0;
     this.lastPendingCheck = 0;
     this.lastAnomalyCheck = 0;
+    
+    // Правило ограничения частоты перезапуска аномалий
+    this.lastAnomalyCheckStart = 0;  // Время начала последней проверки аномалий
+    this.anomalyCheckDuration = 0;   // Продолжительность последней проверки аномалий
+    this.anomalyCheckMinInterval = 5 * 60 * 1000; // Минимальный интервал между проверками (5 минут)
+    this.anomalyCheckMaxDuration = 5 * 60 * 1000; // Максимальная продолжительность проверки (5 минут)
     
     // Интервалы для разных потоков (REST API)
     this.anomalyCheckInterval = null;      // Поток 1: 5 минут
@@ -181,6 +189,13 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
   async initialize() {
     console.log('🚀 Инициализация системы виртуальной торговли (REST API)...');
     
+    // ПЕРВЫМ ДЕЛОМ - проверить приоритетную очередь
+    console.log('🔍 ПЕРВЫЙ ПРИОРИТЕТ: Проверка приоритетной очереди...');
+    await this.checkPriorityQueue();
+    
+    // Инициализировать Telegram бота
+    await this.initializeTelegramBot();
+    
     // Инициализировать приложение
     this.app = new CryptoScreenerApp();
     await this.app.start();
@@ -212,6 +227,26 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
   }
 
   /**
+   * Инициализировать Telegram бота
+   */
+  async initializeTelegramBot() {
+    try {
+      // Использовать синглтон для инициализации бота
+      this.telegramBot = await telegramBotSingleton.initialize();
+      
+      if (!this.telegramBot) {
+        console.log('⚠️ Telegram бот не инициализирован, уведомления отключены');
+        return;
+      }
+      
+      console.log('🤖 Telegram бот инициализирован для виртуальной торговой системы (синглтон)');
+      
+    } catch (error) {
+      console.error('❌ Ошибка инициализации Telegram бота:', error.message);
+    }
+  }
+
+  /**
    * Добавить задачу в приоритетную очередь
    */
   addTaskToQueue(task, priority) {
@@ -236,6 +271,81 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     if (!this.isProcessing) {
       this.processQueue();
     }
+  }
+
+  /**
+   * Проверить и инициализировать приоритетную очередь
+   */
+  async checkPriorityQueue() {
+    console.log('🔍 Проверка приоритетной очереди...');
+    
+    // Проверить состояние очереди
+    console.log(`📊 Текущее состояние очереди:`);
+    console.log(`   • Задач в очереди: ${this.taskQueue.length}`);
+    console.log(`   • Обработка активна: ${this.isProcessing}`);
+    console.log(`   • Последняя проверка активных сделок: ${this.lastActiveTradesCheck ? new Date(this.lastActiveTradesCheck).toLocaleTimeString() : 'не выполнялась'}`);
+    console.log(`   • Последняя проверка watchlist: ${this.lastPendingCheck ? new Date(this.lastPendingCheck).toLocaleTimeString() : 'не выполнялась'}`);
+    console.log(`   • Последняя проверка аномалий: ${this.lastAnomalyCheck ? new Date(this.lastAnomalyCheck).toLocaleTimeString() : 'не выполнялась'}`);
+    
+    // Очистить очередь если она в недопустимом состоянии
+    if (this.taskQueue.length > 100) {
+      console.log('⚠️ Очередь переполнена, очищаем...');
+      this.taskQueue = [];
+      this.isProcessing = false;
+    }
+    
+    // Проверить интервалы
+    const intervalsStatus = {
+      activeTrades: !!this.activeTradesInterval,
+      pendingCheck: !!this.pendingCheckInterval,
+      anomalyCheck: !!this.anomalyCheckInterval
+    };
+    
+    console.log(`⏰ Статус интервалов:`);
+    console.log(`   • Активные сделки: ${intervalsStatus.activeTrades ? '🟢 Активен' : '🔴 Остановлен'}`);
+    console.log(`   • Watchlist: ${intervalsStatus.pendingCheck ? '🟢 Активен' : '🔴 Остановлен'}`);
+    console.log(`   • Аномалии: ${intervalsStatus.anomalyCheck ? '🟢 Активен' : '🔴 Остановлен'}`);
+    
+    // Инициализировать базовую задачу если очередь пуста
+    if (this.taskQueue.length === 0) {
+      console.log('📦 Очередь пуста, добавляем базовую задачу...');
+      this.addTaskToQueue(async () => {
+        console.log('🔍 [ПОТОК 1] Базовая задача поиска аномалий...');
+        await this.runAnomalyCheck();
+      }, 3);
+    }
+    
+    console.log('✅ Проверка приоритетной очереди завершена');
+  }
+
+  /**
+   * Проверить правило ограничения частоты перезапуска аномалий
+   * @returns {boolean} true если проверка разрешена, false если нужно пропустить
+   */
+  checkAnomalyRateLimit() {
+    const now = Date.now();
+    const timeSinceLastStart = now - this.lastAnomalyCheckStart;
+    
+    // Если проверка еще не запускалась, разрешить
+    if (this.lastAnomalyCheckStart === 0) {
+      return true;
+    }
+    
+    // Проверить минимальный интервал между проверками
+    if (timeSinceLastStart < this.anomalyCheckMinInterval) {
+      const remainingTime = Math.ceil((this.anomalyCheckMinInterval - timeSinceLastStart) / 1000);
+      console.log(`⏳ Правило ограничения: проверка аномалий пропущена. Осталось ${remainingTime} сек до следующей проверки`);
+      return false;
+    }
+    
+    // Проверить, не превышает ли последняя проверка максимальную продолжительность
+    if (this.anomalyCheckDuration > this.anomalyCheckMaxDuration) {
+      console.log(`⚠️ Правило ограничения: последняя проверка аномалий заняла ${Math.ceil(this.anomalyCheckDuration / 1000)} сек (максимум ${this.anomalyCheckMaxDuration / 1000} сек)`);
+      console.log(`⏳ Следующая проверка будет через ${Math.ceil(this.anomalyCheckMinInterval / 1000)} сек для предотвращения перегрузки`);
+      return false;
+    }
+    
+    return true;
   }
 
   /**
@@ -458,11 +568,9 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
           anomaly.anomalyId, 
           currentVolume,
           anomaly.entryLevel,
-          anomaly.cancelLevel
+          anomaly.cancelLevel,
+          anomaly.volumeLeverage
         );
-        
-        // Установить leverage объема из аномалии
-        trade.volumeIncrease = anomaly.volumeLeverage;
         
         // Записать лид как сконвертированный
         super.addLeadRecord(anomaly, 'entry', true);
@@ -509,16 +617,42 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
   }
 
   /**
+   * Рассчитать динамический процент тейк-профита на основе leverage объема
+   */
+  calculateDynamicTakeProfitPercent(volumeLeverage) {
+    if (!volumeLeverage || volumeLeverage < 8) {
+      return this.config.takeProfitPercent; // По умолчанию 2.5%
+    }
+    
+    if (volumeLeverage >= 8 && volumeLeverage < 10) {
+      return 0.03; // 3%
+    } else if (volumeLeverage >= 10 && volumeLeverage < 12) {
+      return 0.035; // 3.5%
+    } else if (volumeLeverage >= 12 && volumeLeverage < 16) {
+      return 0.04; // 4%
+    } else if (volumeLeverage >= 16 && volumeLeverage < 20) {
+      return 0.045; // 4.5%
+    } else if (volumeLeverage >= 20) {
+      return 0.05; // 5%
+    }
+    
+    return this.config.takeProfitPercent; // Fallback
+  }
+
+  /**
    * Создать виртуальную сделку
    */
-  createVirtualTrade(symbol, tradeType, entryPrice, anomalyId = null, currentVolume = null) {
+  createVirtualTrade(symbol, tradeType, entryPrice, anomalyId = null, currentVolume = null, volumeLeverage = null) {
     const stopLoss = tradeType === 'Long' 
       ? entryPrice * (1 - this.config.stopLossPercent)
       : entryPrice * (1 + this.config.stopLossPercent);
     
+    // Рассчитать динамический тейк-профит на основе leverage
+    const dynamicTakeProfitPercent = this.calculateDynamicTakeProfitPercent(volumeLeverage);
+    
     const takeProfit = tradeType === 'Long'
-      ? entryPrice * (1 + this.config.takeProfitPercent)
-      : entryPrice * (1 - this.config.takeProfitPercent);
+      ? entryPrice * (1 + dynamicTakeProfitPercent)
+      : entryPrice * (1 - dynamicTakeProfitPercent);
 
     const trade = {
       id: `${symbol}_${Date.now()}`,
@@ -533,13 +667,22 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       lastPrice: entryPrice,
       lastUpdateTime: new Date().toISOString(),
       currentVolume: currentVolume, // Добавляем текущий объем свечи
-      bezubitok: false // Режим безубытка
+      volumeIncrease: volumeLeverage, // Увеличение объема в разах
+      bezubitok: false, // Режим безубытка
+      
+      // Динамический тейк-профит
+      volumeLeverage: volumeLeverage,
+      dynamicTakeProfitPercent: dynamicTakeProfitPercent
     };
 
     this.activeTrades.set(symbol, trade);
     this.watchlist.add(symbol);
     
     console.log(`💰 Создана виртуальная сделка ${tradeType} для ${symbol} по цене $${entryPrice.toFixed(6)}`);
+    
+    if (volumeLeverage) {
+      console.log(`📊 Leverage: ${volumeLeverage.toFixed(1)}x, Тейк-профит: ${(dynamicTakeProfitPercent * 100).toFixed(1)}%`);
+    }
     
     // Отправить уведомление о новой сделке
     this.sendNewTradeNotification(trade).catch(error => {
@@ -1360,99 +1503,121 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
   async runAnomalyCheck() {
     console.log('🔍 [ПОТОК 1] Поиск аномалий среди всех монет (многопоточный)...');
     
-    // Проверить, не слишком ли часто добавляем задачи в очередь
-    const now = Date.now();
-    const timeSinceLastCheck = now - this.lastAnomalyCheck;
-    
-    // Добавляем задачи в очередь только каждые 2 минуты
-    if (timeSinceLastCheck < 2 * 60 * 1000) {
-      console.log('⏳ Слишком рано для добавления задач в очередь, пропускаем');
+    // Проверить правило ограничения частоты перезапуска
+    if (!this.checkAnomalyRateLimit()) {
       return;
     }
     
-    this.lastAnomalyCheck = now;
+    // Зафиксировать время начала проверки
+    const checkStartTime = Date.now();
+    this.lastAnomalyCheckStart = checkStartTime;
     
-    // Фильтровать монеты, которые уже в pending или на cooldown
-    const pendingSymbols = Array.from(this.pendingAnomalies.keys());
-    const cooldownSymbols = Array.from(this.anomalyCooldowns.keys());
-    
-    const availableCoins = this.filteredCoins.filter(coin => {
-      const symbol = `${coin.symbol}/USDT`;
-      return !this.pendingAnomalies.has(symbol) && 
-             !this.isAnomalyOnCooldown(symbol) && 
-             !this.activeTrades.has(symbol);
-    });
-    
-    const excludedFromPending = this.filteredCoins.filter(coin => {
-      const symbol = `${coin.symbol}/USDT`;
-      return this.pendingAnomalies.has(symbol);
-    });
-    
-    const excludedFromCooldown = this.filteredCoins.filter(coin => {
-      const symbol = `${coin.symbol}/USDT`;
-      return this.isAnomalyOnCooldown(symbol);
-    });
-    
-    const excludedFromActiveTrades = this.filteredCoins.filter(coin => {
-      const symbol = `${coin.symbol}/USDT`;
-      return this.activeTrades.has(symbol);
-    });
-    
-    console.log(`📊 Статистика фильтрации:`);
-    console.log(`   📋 Всего монет: ${this.filteredCoins.length}`);
-    console.log(`   ✅ Доступно для проверки: ${availableCoins.length}`);
-    console.log(`   ⏳ Исключено (в pending): ${excludedFromPending.length}`);
-    console.log(`   🚫 Исключено (на cooldown): ${excludedFromCooldown.length}`);
-    console.log(`   💰 Исключено (активные сделки): ${excludedFromActiveTrades.length}`);
-    
-    if (excludedFromPending.length > 0) {
-      console.log(`   📋 Монеты в pending: ${excludedFromPending.map(coin => coin.symbol).join(', ')}`);
-    }
-    
-    if (excludedFromActiveTrades.length > 0) {
-      console.log(`   💰 Активные сделки: ${excludedFromActiveTrades.map(coin => coin.symbol).join(', ')}`);
-    }
-    
-    if (availableCoins.length === 0) {
-      console.log('📊 Нет доступных монет для проверки');
-      return;
-    }
-    
-    // Разбить на батчи для многопоточности
-    const batchSize = 10;
-    const batches = [];
-    
-    for (let i = 0; i < availableCoins.length; i += batchSize) {
-      batches.push(availableCoins.slice(i, i + batchSize));
-    }
-    
-    console.log(`📦 Обработка ${batches.length} батчей по ${batchSize} монет`);
-    
-    // Обработать батчи с задержкой
-    for (let i = 0; i < batches.length; i++) {
-      const batch = batches[i];
+    try {
+      // Проверить, не слишком ли часто добавляем задачи в очередь
+      const now = Date.now();
+      const timeSinceLastCheck = now - this.lastAnomalyCheck;
       
-      console.log(`📦 Обработка батча ${i + 1}/${batches.length} (${batch.length} монет)`);
-      
-      // Запустить все запросы в батче параллельно
-      const promises = batch.map(coin => this.checkAnomalies(coin));
-      await Promise.all(promises);
-      
-      // Небольшая задержка между батчами
-      if (i < batches.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      // Добавляем задачи в очередь только каждые 2 минуты
+      if (timeSinceLastCheck < 2 * 60 * 1000) {
+        console.log('⏳ Слишком рано для добавления задач в очередь, пропускаем');
+        return;
       }
-    }
-    
-    console.log('✅ [ПОТОК 1] Поиск аномалий завершен');
-    
-    // Добавить задачи в очередь только каждые 5 батчей
-    if (batches.length > 0 && (batches.length % 5 === 0)) {
-      console.log('📦 Добавление задач в очередь...');
       
-      // Добавить задачи с разными приоритетами
-      this.addTaskToQueue(() => this.runActiveTradesCheck(), 1); // Trade List (высший приоритет)
-      this.addTaskToQueue(() => this.runPendingCheck(), 2);       // Watchlist (средний приоритет)
+      this.lastAnomalyCheck = now;
+      
+      // Фильтровать монеты, которые уже в pending или на cooldown
+      const pendingSymbols = Array.from(this.pendingAnomalies.keys());
+      const cooldownSymbols = Array.from(this.anomalyCooldowns.keys());
+      
+      const availableCoins = this.filteredCoins.filter(coin => {
+        const symbol = `${coin.symbol}/USDT`;
+        return !this.pendingAnomalies.has(symbol) && 
+               !this.isAnomalyOnCooldown(symbol) && 
+               !this.activeTrades.has(symbol);
+      });
+      
+      const excludedFromPending = this.filteredCoins.filter(coin => {
+        const symbol = `${coin.symbol}/USDT`;
+        return this.pendingAnomalies.has(symbol);
+      });
+      
+      const excludedFromCooldown = this.filteredCoins.filter(coin => {
+        const symbol = `${coin.symbol}/USDT`;
+        return this.isAnomalyOnCooldown(symbol);
+      });
+      
+      const excludedFromActiveTrades = this.filteredCoins.filter(coin => {
+        const symbol = `${coin.symbol}/USDT`;
+        return this.activeTrades.has(symbol);
+      });
+      
+      console.log(`📊 Статистика фильтрации:`);
+      console.log(`   📋 Всего монет: ${this.filteredCoins.length}`);
+      console.log(`   ✅ Доступно для проверки: ${availableCoins.length}`);
+      console.log(`   ⏳ Исключено (в pending): ${excludedFromPending.length}`);
+      console.log(`   🚫 Исключено (на cooldown): ${excludedFromCooldown.length}`);
+      console.log(`   💰 Исключено (активные сделки): ${excludedFromActiveTrades.length}`);
+      
+      if (excludedFromPending.length > 0) {
+        console.log(`   📋 Монеты в pending: ${excludedFromPending.map(coin => coin.symbol).join(', ')}`);
+      }
+      
+      if (excludedFromActiveTrades.length > 0) {
+        console.log(`   💰 Активные сделки: ${excludedFromActiveTrades.map(coin => coin.symbol).join(', ')}`);
+      }
+      
+      if (availableCoins.length === 0) {
+        console.log('📊 Нет доступных монет для проверки');
+        return;
+      }
+      
+      // Разбить на батчи для многопоточности
+      const batchSize = 10;
+      const batches = [];
+      
+      for (let i = 0; i < availableCoins.length; i += batchSize) {
+        batches.push(availableCoins.slice(i, i + batchSize));
+      }
+      
+      console.log(`📦 Обработка ${batches.length} батчей по ${batchSize} монет`);
+      
+      // Обработать батчи с задержкой
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        
+        console.log(`📦 Обработка батча ${i + 1}/${batches.length} (${batch.length} монет)`);
+        
+        // Запустить все запросы в батче параллельно
+        const promises = batch.map(coin => this.checkAnomalies(coin));
+        await Promise.all(promises);
+        
+        // Небольшая задержка между батчами
+        if (i < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      console.log('✅ [ПОТОК 1] Поиск аномалий завершен');
+      
+      // Добавить задачи в очередь только каждые 5 батчей
+      if (batches.length > 0 && (batches.length % 5 === 0)) {
+        console.log('📦 Добавление задач в очередь...');
+        
+        // Добавить задачи с разными приоритетами
+        this.addTaskToQueue(() => this.runActiveTradesCheck(), 1); // Trade List (высший приоритет)
+        this.addTaskToQueue(() => this.runPendingCheck(), 2);       // Watchlist (средний приоритет)
+      }
+      
+    } finally {
+      // Зафиксировать продолжительность проверки
+      this.anomalyCheckDuration = Date.now() - checkStartTime;
+      console.log(`⏱️ Проверка аномалий завершена за ${Math.ceil(this.anomalyCheckDuration / 1000)} сек`);
+      
+      // Если проверка заняла больше максимального времени, вывести предупреждение
+      if (this.anomalyCheckDuration > this.anomalyCheckMaxDuration) {
+        console.log(`⚠️ ВНИМАНИЕ: Проверка аномалий заняла ${Math.ceil(this.anomalyCheckDuration / 1000)} сек (превышает лимит ${this.anomalyCheckMaxDuration / 1000} сек)`);
+        console.log(`⏳ Следующая проверка будет отложена на ${Math.ceil(this.anomalyCheckMinInterval / 1000)} сек для предотвращения перегрузки`);
+      }
     }
   }
 
@@ -1483,6 +1648,10 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
    */
   async start() {
     try {
+      // ПЕРВЫМ ДЕЛОМ - проверить приоритетную очередь
+      console.log('🔍 ПЕРВЫЙ ПРИОРИТЕТ: Проверка приоритетной очереди при запуске...');
+      await this.checkPriorityQueue();
+      
       // Инициализировать систему
       await this.initialize();
       
@@ -1585,6 +1754,16 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
     if (this.app) {
       await this.app.stop();
       this.app = null;
+    }
+    
+    // Остановить Telegram бота через синглтон
+    if (telegramBotSingleton.isReady()) {
+      try {
+        await telegramBotSingleton.stop();
+        console.log('🤖 Telegram бот остановлен (синглтон)');
+      } catch (error) {
+        console.error('❌ Ошибка остановки Telegram бота:', error.message);
+      }
     }
     
     console.log('✅ Система остановлена');

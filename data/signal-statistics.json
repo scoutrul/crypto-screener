@@ -1,52 +1,19 @@
 {
   "leads": [
     {
-      "symbol": "MEME/USDT",
-      "anomalyId": "MEME_1753976932206",
+      "symbol": "ONDO/USDT",
+      "anomalyId": "ONDO_1753980722059",
       "tradeType": "Short",
-      "volumeLeverage": 18,
+      "volumeLeverage": 11.8,
       "outcome": "consolidation",
       "converted": false,
-      "watchlistTime": "2025-07-31T15:48:52.206Z",
+      "watchlistTime": "2025-07-31T16:52:02.059Z",
       "lifetimeMinutes": 2,
-      "createdAt": "2025-07-31T15:50:46.432Z"
-    },
-    {
-      "symbol": "MEME/USDT",
-      "anomalyId": "MEME_1753977136527",
-      "tradeType": "Short",
-      "volumeLeverage": 18,
-      "outcome": "consolidation",
-      "converted": false,
-      "watchlistTime": "2025-07-31T15:52:16.527Z",
-      "lifetimeMinutes": 2,
-      "createdAt": "2025-07-31T15:54:11.805Z"
-    },
-    {
-      "symbol": "MEME/USDT",
-      "anomalyId": "MEME_1753977386500",
-      "tradeType": "Short",
-      "volumeLeverage": 18,
-      "outcome": "consolidation",
-      "converted": false,
-      "watchlistTime": "2025-07-31T15:56:26.500Z",
-      "lifetimeMinutes": 2,
-      "createdAt": "2025-07-31T15:58:31.875Z"
-    },
-    {
-      "symbol": "GMX/USDT",
-      "anomalyId": "GMX_1753978587720",
-      "tradeType": "Short",
-      "volumeLeverage": 10.8,
-      "outcome": "consolidation",
-      "converted": false,
-      "watchlistTime": "2025-07-31T16:16:27.720Z",
-      "lifetimeMinutes": 3,
-      "createdAt": "2025-07-31T16:19:33.453Z"
+      "createdAt": "2025-07-31T16:54:12.017Z"
     }
   ],
-  "totalLeads": 4,
+  "totalLeads": 1,
   "convertedToTrade": 0,
-  "averageLeadLifetimeMinutes": 2.3,
-  "lastUpdated": "2025-07-31T16:19:33.456Z"
+  "averageLeadLifetimeMinutes": 2,
+  "lastUpdated": "2025-07-31T16:54:12.021Z"
 }
