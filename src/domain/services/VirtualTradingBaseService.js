@@ -5,6 +5,8 @@
 
 const fs = require('fs').promises;
 const path = require('path');
+const { MultiLevelTradingService } = require('./MultiLevelTradingService');
+const { MultiLevelNotificationService } = require('./MultiLevelNotificationService');
 
 /**
  * Базовый класс виртуальной торговой системы
@@ -24,6 +26,18 @@ class VirtualTradingBaseService {
       cancelLevelPercent: 0.006, // 0.6% для уровня отмены
       anomalyCooldown: 4, // 4 TF (1 час) без повторных аномалий
       entryConfirmationTFs: 6, // 6 TF для подтверждения точки входа (3 часа)
+      
+      // Многоуровневая фиксация прибыли
+      multiLevelEnabled: true, // включение многоуровневой системы
+      initialVolume: 1000, // начальный объём сделки в долларах
+      commissionPercent: 0.0003, // комиссия биржи (0.03%)
+      level2VolumePercent: 0.2, // 20% для уровня 2
+      level3VolumePercent: 0.4, // 40% для уровня 3
+      level4VolumePercent: 0.4, // 40% для уровня 4
+      level2TargetPercent: 0.0006, // целевой уровень для безубытка с комиссией
+      level3TargetPercent: 0.05, // 5% для уровня 3
+      level4TargetPercent: 0.05, // 5% для уровня 4
+      
       ...config
     };
 
@@ -38,6 +52,12 @@ class VirtualTradingBaseService {
 
     // Система уведомлений
     this.notificationService = null;
+    
+    // Многоуровневая торговая система
+    this.multiLevelService = new MultiLevelTradingService(this.config);
+    
+    // Сервис уведомлений для многоуровневой торговли
+    this.multiLevelNotificationService = new MultiLevelNotificationService(this.config);
     
     // Статистика
     this.systemStartTime = new Date();
@@ -320,6 +340,16 @@ class VirtualTradingBaseService {
         if (trade.bezubitok === undefined) {
           trade.bezubitok = false; // Установить false для старых сделок
         }
+        
+        // Восстановить многоуровневую систему для существующих сделок
+        if (this.config.multiLevelEnabled && !trade.tradeLevels) {
+          trade.tradeLevels = this.multiLevelService.createTradeLevels(trade.entryPrice, trade.type);
+          trade.totalCommission = 0;
+          trade.netProfit = 0;
+          trade.executedLevels = 0;
+          console.log(`📊 Восстановлена многоуровневая система для ${trade.symbol}`);
+        }
+        
         this.activeTrades.set(trade.symbol, trade);
         this.watchlist.add(trade.symbol);
       });
@@ -516,6 +546,12 @@ class VirtualTradingBaseService {
    * Проверить и установить режим безубытка (общая логика)
    */
   checkAndSetBezubitok(trade, currentPrice) {
+    // Если включена многоуровневая система, используем её вместо старой логики безубытка
+    if (this.config.multiLevelEnabled && trade.tradeLevels) {
+      this.checkMultiLevelExecution(trade, currentPrice);
+      return;
+    }
+
     if (trade.bezubitok) {
       return; // Уже в режиме безубытка
     }
@@ -555,6 +591,51 @@ class VirtualTradingBaseService {
   }
 
   /**
+   * Проверить выполнение уровней многоуровневой системы
+   */
+  checkMultiLevelExecution(trade, currentPrice) {
+    if (!this.config.multiLevelEnabled || !trade.tradeLevels) {
+      return;
+    }
+
+    const executedLevels = this.multiLevelService.checkLevelExecution(trade, currentPrice);
+    
+    if (executedLevels && executedLevels.length > 0) {
+      // Обновить статистику сделки
+      trade.totalCommission = this.multiLevelService.calculateTotalCommission(trade);
+      trade.netProfit = this.multiLevelService.calculateNetProfit(trade);
+      trade.executedLevels = trade.tradeLevels.filter(level => level.isExecuted).length;
+      
+      // Отправить уведомления о выполненных уровнях
+      executedLevels.forEach(level => {
+        this.sendLevelExecutedNotification(trade, level).catch(error => {
+          console.error(`❌ Ошибка отправки уведомления о выполнении уровня ${level.levelNumber}:`, error.message);
+        });
+      });
+
+      // Проверить, завершена ли сделка
+      if (this.multiLevelService.isTradeCompleted(trade)) {
+        console.log(`🎉 Сделка ${trade.symbol} завершена! Все уровни выполнены.`);
+        this.completeMultiLevelTrade(trade, currentPrice);
+      }
+    }
+  }
+
+  /**
+   * Завершить многоуровневую сделку
+   */
+  async completeMultiLevelTrade(trade, currentPrice) {
+    const stats = this.multiLevelService.getLevelsStatistics(trade);
+    const profitLoss = stats.netProfit;
+    const profitLossPercent = (profitLoss / this.config.initialVolume) * 100;
+    
+    // Отправить уведомление о завершении многоуровневой сделки
+    await this.multiLevelNotificationService.sendTradeCompletedNotification(trade);
+    
+    await this.closeTrade(trade, currentPrice, 'multi_level_completed', profitLossPercent);
+  }
+
+  /**
    * Создать виртуальную сделку (общая логика)
    */
   createVirtualTrade(symbol, tradeType, entryPrice, anomalyId = null, currentVolume = null, entryLevel = null, cancelLevel = null) {
@@ -582,13 +663,24 @@ class VirtualTradingBaseService {
       volumeIncrease: null, // Увеличение объема в разах (будет установлено позже)
       entryLevel: entryLevel, // Уровень входа для отслеживания
       cancelLevel: cancelLevel, // Уровень отмены для отслеживания
-      bezubitok: false // Режим безубытка
+      bezubitok: false, // Режим безубытка
+      
+      // Многоуровневая система
+      tradeLevels: this.config.multiLevelEnabled ? 
+        this.multiLevelService.createTradeLevels(entryPrice, tradeType) : null,
+      totalCommission: 0,
+      netProfit: 0,
+      executedLevels: 0
     };
 
     this.activeTrades.set(symbol, trade);
     this.watchlist.add(symbol);
     
     console.log(`💰 Создана виртуальная сделка ${tradeType} для ${symbol} по цене $${entryPrice.toFixed(6)}`);
+    
+    if (this.config.multiLevelEnabled) {
+      console.log(`📊 Многоуровневая система активирована с ${trade.tradeLevels.length} уровнями`);
+    }
     
     // Отправить уведомление о новой сделке
     this.sendNewTradeNotification(trade).catch(error => {
@@ -608,6 +700,15 @@ class VirtualTradingBaseService {
     trade.closeReason = reason;
     trade.profitLoss = profitLoss;
     trade.duration = new Date(trade.exitTime) - new Date(trade.entryTime);
+
+    // Добавить информацию о многоуровневой системе
+    if (this.config.multiLevelEnabled && trade.tradeLevels) {
+      const stats = this.multiLevelService.getLevelsStatistics(trade);
+      trade.totalCommission = stats.totalCommission;
+      trade.netProfit = stats.netProfit;
+      trade.executedLevels = stats.executedLevels;
+      trade.levelsData = trade.tradeLevels.map(level => level.toJSON());
+    }
 
     // Добавить в историю
     this.tradeHistory.push(trade);
@@ -649,7 +750,7 @@ class VirtualTradingBaseService {
     const symbol = trade.symbol.replace('/USDT', '');
     const profitLossText = trade.profitLoss >= 0 ? `+${trade.profitLoss.toFixed(2)}%` : `${trade.profitLoss.toFixed(2)}%`;
     const emoji = trade.profitLoss >= 0 ? '🟢' : '🔴';
-    const reasonText = trade.closeReason === 'take_profit' ? 'Тейк-профит' : 'Стоп-лосс';
+    const reasonText = this.getCloseReasonText(trade.closeReason);
     
     // Получить текущую статистику
     const stats = this.getCurrentStatistics();
@@ -679,7 +780,7 @@ class VirtualTradingBaseService {
     // Добавить информацию о безубытке
     const bezubitokInfo = trade.bezubitok ? '\n🟢 БЕЗУБЫТОК: Да' : '';
     
-    return `${symbol} → ${trade.type} ${emoji} ЗАКРЫТА
+    let message = `${symbol} → ${trade.type} ${emoji} ЗАКРЫТА
 🆔 ID: ${trade.anomalyId || trade.id || 'N/A'}
 🕐 Время закрытия: ${closeTime}
 
@@ -689,15 +790,51 @@ class VirtualTradingBaseService {
 🎯 Тейк: $${trade.takeProfit.toFixed(6)} (${takeProfitProgress.toFixed(0)}% прогресс)
 📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease}x` : 'N/A'}
 ⏱️ Длительность: ${Math.round(trade.duration / 1000 / 60)} минут
-🎯 Причина: ${reasonText}${bezubitokInfo}
+🎯 Причина: ${reasonText}${bezubitokInfo}`;
 
-📈 ТЕКУЩАЯ СТАТИСТИКА:
+    // Добавить информацию о многоуровневой системе
+    if (this.config.multiLevelEnabled && trade.levelsData) {
+      message += '\n\n📊 МНОГОУРОВНЕВАЯ СТАТИСТИКА:';
+      message += `\n• Выполнено уровней: ${trade.executedLevels || 0}/4`;
+      message += `\n• Общая комиссия: $${trade.totalCommission?.toFixed(2) || '0.00'}`;
+      message += `\n• Чистая прибыль: $${trade.netProfit?.toFixed(2) || '0.00'}`;
+      
+      if (trade.levelsData) {
+        message += '\n\n📈 ДЕТАЛИ ПО УРОВНЯМ:';
+        trade.levelsData.forEach(level => {
+          if (level.isExecuted) {
+            const profitText = level.profitLoss >= 0 ? 
+              `+$${level.profitLoss.toFixed(2)}` : 
+              `-$${Math.abs(level.profitLoss).toFixed(2)}`;
+            message += `\n• Уровень ${level.levelNumber}: ${profitText} (${level.profitLossPercent.toFixed(2)}%)`;
+          }
+        });
+      }
+    }
+
+    message += `\n\n📈 ТЕКУЩАЯ СТАТИСТИКА:
 • Всего сделок: ${stats.totalTrades}
 • Прибыльных: ${stats.winningTrades} 🟢
 • Убыточных: ${stats.losingTrades} 🔴
 • Винрейт: ${stats.winRate}%
 • Общая прибыль: ${stats.totalProfit}%
 • Активных сделок: ${this.activeTrades.size}`;
+
+    return message;
+  }
+
+  /**
+   * Получить текст причины закрытия сделки
+   */
+  getCloseReasonText(reason) {
+    const reasons = {
+      'take_profit': 'Тейк-профит',
+      'stop_loss': 'Стоп-лосс',
+      'multi_level_completed': 'Все уровни выполнены',
+      'manual': 'Ручное закрытие',
+      'timeout': 'Таймаут'
+    };
+    return reasons[reason] || reason;
   }
 
   /**
@@ -940,7 +1077,7 @@ class VirtualTradingBaseService {
       second: '2-digit'
     });
 
-    return `🎯 НОВАЯ СДЕЛКА: ${symbol} → ${trade.type} ${emoji}
+    let message = `🎯 НОВАЯ СДЕЛКА: ${symbol} → ${trade.type} ${emoji}
 🆔 ID: ${trade.anomalyId || trade.id || 'N/A'}
 🕐 Время: ${tradeTime}
 
@@ -948,17 +1085,28 @@ class VirtualTradingBaseService {
 🛑 Стоп: $${stopLoss.toFixed(6)}
 🎯 Тейк: $${takeProfit.toFixed(6)} (0% прогресс)
 💵 Виртуальная сумма: $${trade.virtualAmount}
-📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease.toFixed(1)}x` : 'N/A'}
+📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease.toFixed(1)}x` : 'N/A'}`;
 
-💡 БЕЗУБЫТОК: При достижении 20% прогресса к тейк-профиту
-🛑 стоп-лосс автоматически изменится на +6% от цены входа
+    // Добавить информацию о многоуровневой системе
+    if (this.config.multiLevelEnabled && trade.tradeLevels) {
+      message += `\n\n📊 МНОГОУРОВНЕВАЯ СИСТЕМА АКТИВИРОВАНА:
+• Уровень 1: $${this.config.initialVolume} (100% объёма)
+• Уровень 2: $${this.config.initialVolume * this.config.level2VolumePercent} (${this.config.level2VolumePercent * 100}% объёма) - безубыток
+• Уровень 3: $${this.config.initialVolume * this.config.level3VolumePercent} (${this.config.level3VolumePercent * 100}% объёма) - ${this.config.level3TargetPercent * 100}% прибыли
+• Уровень 4: $${this.config.initialVolume * this.config.level4VolumePercent} (${this.config.level4VolumePercent * 100}% объёма) - ${this.config.level4TargetPercent * 100}% прибыли`;
+    } else {
+      message += `\n\n💡 БЕЗУБЫТОК: При достижении 20% прогресса к тейк-профиту
+🛑 стоп-лосс автоматически изменится на +6% от цены входа`;
+    }
 
-📈 ТЕКУЩАЯ СТАТИСТИКА:
+    message += `\n\n📈 ТЕКУЩАЯ СТАТИСТИКА:
 • Всего сделок: ${stats.totalTrades}
 • Прибыльных: ${stats.winningTrades} 🟢
 • Убыточных: ${stats.losingTrades} 🔴
 • Винрейт: ${stats.winRate}%
 • Активных сделок: ${this.activeTrades.size}`;
+
+    return message;
   }
 
   /**
@@ -1034,89 +1182,74 @@ class VirtualTradingBaseService {
     if (longTrades.length > 0) {
       message += `🟢 LONG (${longTrades.length}):\n`;
       longTrades.forEach(trade => {
-        const symbol = trade.symbol.replace('/USDT', '');
-        const entryTime = new Date(trade.entryTime).toLocaleString('ru-RU');
-        const lastUpdateTime = trade.lastUpdateTime ? new Date(trade.lastUpdateTime).toLocaleString('ru-RU') : 'Не обновлялось';
-        
-        // Рассчитать изменение в процентах
-        const lastPrice = trade.lastPrice || trade.entryPrice;
-        const priceChange = ((lastPrice - trade.entryPrice) / trade.entryPrice) * 100;
-        const changeEmoji = priceChange >= 0 ? '🟢' : '🔴';
-        const changeSign = priceChange >= 0 ? '+' : '';
-        
-        // Рассчитать прогресс тейк-профита по формуле: (текущая - вход)/(тейк-вход)*100
-        let takeProfitProgress = 0;
-        if (trade.type === 'Long') {
-          takeProfitProgress = ((lastPrice - trade.entryPrice) / (trade.takeProfit - trade.entryPrice)) * 100;
-        } else {
-          // Для Short сделок логика обратная
-          takeProfitProgress = ((trade.entryPrice - lastPrice) / (trade.entryPrice - trade.takeProfit)) * 100;
-        }
-        
-        // Ограничить прогресс от 0 до 100%
-        takeProfitProgress = Math.max(0, Math.min(100, takeProfitProgress));
-        
-        // Определить иконку прогресса
-        const progressEmoji = takeProfitProgress > 0 ? '🟢' : '⚪';
-        
-        // Добавить индикатор безубытка
-        const bezubitokIndicator = trade.bezubitok ? ' 🟢 БЕЗУБЫТОК' : '';
-        
-        message += `• ${symbol} ${changeEmoji}${bezubitokIndicator}\n`;
-        message += `  🕐 Вход: ${entryTime}\n`;
-        message += `  💰 Точка входа: $${trade.entryPrice.toFixed(6)}\n`;
-        message += `  📈 Текущая цена: $${lastPrice.toFixed(6)}\n`;
-        message += `  📊 Изменение: ${changeSign}${priceChange.toFixed(2)}%\n`;
-        message += `  🎯 Тейк: $${trade.takeProfit.toFixed(6)}\n`;
-        message += `  📊 Прогресс: ${progressEmoji} ${takeProfitProgress.toFixed(0)}%\n`;
-        message += `  ⏰ Обновлено: ${lastUpdateTime}\n\n`;
+        message += this.createTradeSummaryMessage(trade);
       });
     }
     
     if (shortTrades.length > 0) {
       message += `🔴 SHORT (${shortTrades.length}):\n`;
       shortTrades.forEach(trade => {
-        const symbol = trade.symbol.replace('/USDT', '');
-        const entryTime = new Date(trade.entryTime).toLocaleString('ru-RU');
-        const lastUpdateTime = trade.lastUpdateTime ? new Date(trade.lastUpdateTime).toLocaleString('ru-RU') : 'Не обновлялось';
-        
-        // Рассчитать изменение в процентах (для Short логика обратная)
-        const lastPrice = trade.lastPrice || trade.entryPrice;
-        const priceChange = ((trade.entryPrice - lastPrice) / trade.entryPrice) * 100;
-        const changeEmoji = priceChange >= 0 ? '🟢' : '🔴';
-        const changeSign = priceChange >= 0 ? '+' : '';
-        
-        // Рассчитать прогресс тейк-профита по формуле: (текущая - вход)/(тейк-вход)*100
-        let takeProfitProgress = 0;
-        if (trade.type === 'Long') {
-          takeProfitProgress = ((lastPrice - trade.entryPrice) / (trade.takeProfit - trade.entryPrice)) * 100;
-        } else {
-          // Для Short сделок логика обратная
-          takeProfitProgress = ((trade.entryPrice - lastPrice) / (trade.entryPrice - trade.takeProfit)) * 100;
-        }
-        
-        // Ограничить прогресс от 0 до 100%
-        takeProfitProgress = Math.max(0, Math.min(100, takeProfitProgress));
-        
-        // Определить иконку прогресса
-        const progressEmoji = takeProfitProgress > 0 ? '🟢' : '⚪';
-        
-        // Добавить индикатор безубытка
-        const bezubitokIndicator = trade.bezubitok ? ' 🟢 БЕЗУБЫТОК' : '';
-        
-        message += `• ${symbol} ${changeEmoji}${bezubitokIndicator}\n`;
-        message += `  🕐 Вход: ${entryTime}\n`;
-        message += `  💰 Точка входа: $${trade.entryPrice.toFixed(6)}\n`;
-        message += `  📈 Текущая цена: $${lastPrice.toFixed(6)}\n`;
-        message += `  📊 Изменение: ${changeSign}${priceChange.toFixed(2)}%\n`;
-        message += `  🎯 Тейк: $${trade.takeProfit.toFixed(6)}\n`;
-        message += `  📊 Прогресс: ${progressEmoji} ${takeProfitProgress.toFixed(0)}%\n`;
-        message += `  📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease}x` : 'N/A'}\n`;
-        message += `  ⏰ Обновлено: ${lastUpdateTime}\n\n`;
+        message += this.createTradeSummaryMessage(trade);
       });
     }
     
     message += `💡 Система мониторит эти сделки в реальном времени`;
+    
+    return message;
+  }
+
+  /**
+   * Создать сообщение с краткой информацией о сделке
+   */
+  createTradeSummaryMessage(trade) {
+    const symbol = trade.symbol.replace('/USDT', '');
+    const entryTime = new Date(trade.entryTime).toLocaleString('ru-RU');
+    const lastUpdateTime = trade.lastUpdateTime ? new Date(trade.lastUpdateTime).toLocaleString('ru-RU') : 'Не обновлялось';
+    
+    // Рассчитать изменение в процентах
+    const lastPrice = trade.lastPrice || trade.entryPrice;
+    let priceChange;
+    if (trade.type === 'Long') {
+      priceChange = ((lastPrice - trade.entryPrice) / trade.entryPrice) * 100;
+    } else {
+      priceChange = ((trade.entryPrice - lastPrice) / trade.entryPrice) * 100;
+    }
+    
+    const changeEmoji = priceChange >= 0 ? '🟢' : '🔴';
+    const changeSign = priceChange >= 0 ? '+' : '';
+    
+    // Рассчитать прогресс тейк-профита
+    let takeProfitProgress = 0;
+    if (trade.type === 'Long') {
+      takeProfitProgress = ((lastPrice - trade.entryPrice) / (trade.takeProfit - trade.entryPrice)) * 100;
+    } else {
+      takeProfitProgress = ((trade.entryPrice - lastPrice) / (trade.entryPrice - trade.takeProfit)) * 100;
+    }
+    
+    takeProfitProgress = Math.max(0, Math.min(100, takeProfitProgress));
+    const progressEmoji = takeProfitProgress > 0 ? '🟢' : '⚪';
+    
+    // Добавить индикатор безубытка
+    const bezubitokIndicator = trade.bezubitok ? ' 🟢 БЕЗУБЫТОК' : '';
+    
+    let message = `• ${symbol} ${changeEmoji}${bezubitokIndicator}\n`;
+    message += `  🕐 Вход: ${entryTime}\n`;
+    message += `  💰 Точка входа: $${trade.entryPrice.toFixed(6)}\n`;
+    message += `  📈 Текущая цена: $${lastPrice.toFixed(6)}\n`;
+    message += `  📊 Изменение: ${changeSign}${priceChange.toFixed(2)}%\n`;
+    message += `  🎯 Тейк: $${trade.takeProfit.toFixed(6)}\n`;
+    message += `  📊 Прогресс: ${progressEmoji} ${takeProfitProgress.toFixed(0)}%\n`;
+    
+    // Добавить информацию о многоуровневой системе
+    if (this.config.multiLevelEnabled && trade.tradeLevels) {
+      const progress = this.multiLevelService.getLevelsProgress(trade);
+      const stats = this.multiLevelService.getLevelsStatistics(trade);
+      message += `  📊 Уровни: ${progress.executedLevels}/${progress.totalLevels} (${progress.progress}%)\n`;
+      message += `  💵 Чистая прибыль: $${stats.netProfit.toFixed(2)}\n`;
+    }
+    
+    message += `  📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease}x` : 'N/A'}\n`;
+    message += `  ⏰ Обновлено: ${lastUpdateTime}\n\n`;
     
     return message;
   }
@@ -1140,6 +1273,21 @@ class VirtualTradingBaseService {
     await this.loadSignalStatistics();
     await this.loadPendingAnomalies();
     await this.loadActiveTrades();
+
+    // Инициализировать сервис уведомлений, если не установлен
+    if (!this.notificationService) {
+      const { NotificationService } = require('../../application/services/NotificationService');
+      const TelegramNotificationRepository = require('../../infrastructure/repositories/TelegramNotificationRepository');
+      const { MarketAnalysisService } = require('./MarketAnalysisService');
+      
+      const notificationRepository = new TelegramNotificationRepository();
+      const marketAnalysisService = new MarketAnalysisService();
+      this.notificationService = new NotificationService(notificationRepository, marketAnalysisService);
+      console.log('✅ Сервис уведомлений инициализирован');
+    }
+
+    // Загрузить статистику многоуровневой торговли
+    await this.multiLevelNotificationService.loadStatistics();
 
     console.log('✅ Система инициализирована');
   }
@@ -1390,6 +1538,33 @@ class VirtualTradingBaseService {
     const hours = Math.floor(durationMinutes / 60);
     const minutes = durationMinutes % 60;
     return `${hours}ч ${minutes}м`;
+  }
+
+  /**
+   * Отправить уведомление о выполнении уровня
+   */
+  async sendLevelExecutedNotification(trade, executedLevel) {
+    try {
+      // Используем новый сервис уведомлений для многоуровневой торговли
+      await this.multiLevelNotificationService.sendLevelExecutedNotification(trade, executedLevel);
+      console.log(`✅ Уведомление о выполнении уровня ${executedLevel.levelNumber} отправлено`);
+    } catch (error) {
+      console.error('❌ Ошибка отправки уведомления о выполнении уровня:', error.message);
+    }
+  }
+
+  /**
+   * Создать расширенное сообщение о новой сделке с информацией об уровнях
+   */
+  createNewTradeMessageWithLevels(trade) {
+    let message = this.createNewTradeMessage(trade);
+    
+    if (this.config.multiLevelEnabled && trade.tradeLevels) {
+      message += '\n\n📊 МНОГОУРОВНЕВАЯ СИСТЕМА:\n';
+      message += this.multiLevelService.createLevelsProgressMessage(trade);
+    }
+    
+    return message;
   }
 }
 

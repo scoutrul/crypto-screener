@@ -29,6 +29,8 @@
     "logs:websocket": "node scripts/view-websocket-logs.js",
     "stats:view": "node scripts/view-statistics.js",
     "stats:extended": "node scripts/view-extended-statistics.js",
+    "stats:multi-level": "node scripts/view-multi-level-statistics.js",
+    "test:multi-level-notifications": "node scripts/test-multi-level-notifications.js",
     "test:websocket-system": "node scripts/test-websocket-system.js",
     "status:view": "node scripts/view-system-status.js",
     "filter:binance": "node scripts/filter-binance-coins.js",

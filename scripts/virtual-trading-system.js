@@ -159,6 +159,17 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       
       await fs.writeFile(filePath, JSON.stringify(data, null, 2));
       console.log(`💾 Сохранено ${anomalies.length} аномалий в историю за ${dayString}`);
+      
+      // Отправить уведомление в Telegram
+      if (this.notificationService && anomalies.length > 0) {
+        try {
+          const message = `💾 Сохранено ${anomalies.length} аномалий в историю за ${dayString}`;
+          await this.notificationService.sendTelegramMessage(message);
+          console.log('✅ Уведомление о сохранении аномалий отправлено в Telegram');
+        } catch (error) {
+          console.error('❌ Ошибка отправки уведомления в Telegram:', error.message);
+        }
+      }
     } catch (error) {
       console.error(`❌ Ошибка сохранения исторических аномалий за ${dayString}:`, error.message);
     }
