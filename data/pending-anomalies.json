@@ -1,43 +1,28 @@
 {
   "meta": {
     "sessionStats": {
-      "sessionStartTime": "2025-07-30T22:00:37.441Z",
-      "lastUpdated": "2025-07-30T22:06:28.647Z",
-      "totalAnomaliesProcessed": 1,
-      "currentAnomaliesCount": 1,
+      "sessionStartTime": "2025-07-31T11:18:52.102Z",
+      "lastUpdated": "2025-07-31T11:18:52.105Z",
+      "totalAnomaliesProcessed": 0,
+      "currentAnomaliesCount": 0,
       "convertedToTrades": 0,
       "removedFromWatchlist": 0,
-      "averageVolumeLeverage": 11.2,
-      "averageWatchlistTimeMinutes": 5,
+      "averageVolumeLeverage": 0,
+      "averageWatchlistTimeMinutes": 0,
       "longAnomaliesCount": 0,
-      "shortAnomaliesCount": 1,
+      "shortAnomaliesCount": 0,
       "consolidatedAnomaliesCount": 0,
       "unconsolidatedAnomaliesCount": 0,
-      "topVolumeLeverages": [
-        11.2
-      ],
+      "topVolumeLeverages": [],
       "conversionRate": 0,
-      "sessionDurationMinutes": 5
+      "sessionDurationMinutes": 0
     },
     "fileInfo": {
       "version": "2.0",
       "description": "Pending anomalies with session statistics",
-      "createdAt": "2025-07-30T22:00:37.441Z",
-      "lastModified": "2025-07-30T22:06:28.647Z"
+      "createdAt": "2025-07-31T11:18:52.102Z",
+      "lastModified": "2025-07-31T11:18:52.105Z"
     }
   },
-  "anomalies": [
-    {
-      "symbol": "QKC/USDT",
-      "anomalyId": "QKC_1753912837441",
-      "tradeType": "Short",
-      "anomalyTime": "2025-07-30T21:45:00.000Z",
-      "watchlistTime": "2025-07-30T22:00:37.441Z",
-      "anomalyCandleIndex": 6,
-      "anomalyPrice": 0.0098595,
-      "historicalPrice": 0.009495749999999999,
-      "currentVolume": 117613481,
-      "volumeLeverage": 11.2
-    }
-  ]
+  "anomalies": []
 }

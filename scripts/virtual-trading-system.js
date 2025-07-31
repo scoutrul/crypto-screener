@@ -393,7 +393,8 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
       status: 'open',
       lastPrice: entryPrice,
       lastUpdateTime: new Date().toISOString(),
-      currentVolume: currentVolume // Добавляем текущий объем свечи
+      currentVolume: currentVolume, // Добавляем текущий объем свечи
+      bezubitok: false // Режим безубытка
     };
 
     this.activeTrades.set(symbol, trade);
@@ -511,6 +512,9 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
         trade.lastUpdateTime = new Date().toISOString();
           trade.currentVolume = currentVolume; // Обновляем текущий объем
           
+          // Проверить и установить режим безубытка
+          this.checkAndSetBezubitok(trade, currentPrice);
+          
           // Проверить условия закрытия
           this.checkTradeExitConditions(trade, currentPrice);
         } catch (error) {
@@ -538,6 +542,9 @@ class VirtualTradingSystem extends VirtualTradingBaseService {
    */
   checkTradeExitConditions(trade, currentPrice) {
     const { symbol, type, entryPrice, stopLoss, takeProfit } = trade;
+    
+    // Проверить и установить режим безубытка
+    this.checkAndSetBezubitok(trade, currentPrice);
     
         let shouldClose = false;
     let reason = '';

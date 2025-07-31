@@ -18,8 +18,8 @@ class VirtualTradingBaseService {
       historicalWindow: 8, // 8 свечей (2 часа)
       consolidationThreshold: 0.015, // 1.5% для проверки консолидации
       priceThreshold: 0.01, // 1% для определения направления
-      stopLossPercent: 0.007, // 0.7%
-      takeProfitPercent: 0.028, // 2.8%
+      stopLossPercent: 0.005, // stop 0.5%
+      takeProfitPercent: 0.025, // 2.5%
       entryLevelPercent: 0.004, // 0.4% для уровня входа
       cancelLevelPercent: 0.006, // 0.6% для уровня отмены
       anomalyCooldown: 4, // 4 TF (1 час) без повторных аномалий
@@ -99,6 +99,10 @@ class VirtualTradingBaseService {
       this.tradeHistory.forEach(trade => {
         if (!trade.volumeIncrease) {
           trade.volumeIncrease = null; // Установить null для старых сделок
+        }
+        // Добавить поддержку bezubitok для существующих сделок
+        if (trade.bezubitok === undefined) {
+          trade.bezubitok = false; // Установить false для старых сделок
         }
       });
       
@@ -312,6 +316,10 @@ class VirtualTradingBaseService {
         if (!trade.volumeIncrease) {
           trade.volumeIncrease = null; // Установить null для старых сделок
         }
+        // Добавить поддержку bezubitok для существующих сделок
+        if (trade.bezubitok === undefined) {
+          trade.bezubitok = false; // Установить false для старых сделок
+        }
         this.activeTrades.set(trade.symbol, trade);
         this.watchlist.add(trade.symbol);
       });
@@ -505,6 +513,48 @@ class VirtualTradingBaseService {
   }
 
   /**
+   * Проверить и установить режим безубытка (общая логика)
+   */
+  checkAndSetBezubitok(trade, currentPrice) {
+    if (trade.bezubitok) {
+      return; // Уже в режиме безубытка
+    }
+
+    // Рассчитать прогресс к тейк-профиту
+    let progressToTakeProfit = 0;
+    if (trade.type === 'Long') {
+      progressToTakeProfit = ((currentPrice - trade.entryPrice) / (trade.takeProfit - trade.entryPrice)) * 100;
+    } else { // Short
+      progressToTakeProfit = ((trade.entryPrice - currentPrice) / (trade.entryPrice - trade.takeProfit)) * 100;
+    }
+
+    // Ограничить прогресс от 0 до 100%
+    progressToTakeProfit = Math.max(0, Math.min(100, progressToTakeProfit));
+
+    // Если достигли 20% прогресса к тейк-профиту
+    if (progressToTakeProfit >= 20) {
+      trade.bezubitok = true;
+      
+      // Пересчитать стоп-лосс для режима безубытка (+6% от цены входа)
+      const bezubitokStopLossPercent = 0.06; // 6%
+      if (trade.type === 'Long') {
+        trade.stopLoss = trade.entryPrice * (1 + bezubitokStopLossPercent);
+      } else { // Short
+        trade.stopLoss = trade.entryPrice * (1 - bezubitokStopLossPercent);
+      }
+
+      console.log(`🟢 ${trade.symbol} переведен в режим безубытка!`);
+      console.log(`   📊 Прогресс к тейк-профиту: ${progressToTakeProfit.toFixed(1)}%`);
+      console.log(`   🛑 Новый стоп-лосс: $${trade.stopLoss.toFixed(6)}`);
+      
+      // Отправить уведомление о переходе в безубыток
+      this.sendBezubitokNotification(trade, progressToTakeProfit).catch(error => {
+        console.error(`❌ Ошибка отправки уведомления о безубытке для ${trade.symbol}:`, error.message);
+      });
+    }
+  }
+
+  /**
    * Создать виртуальную сделку (общая логика)
    */
   createVirtualTrade(symbol, tradeType, entryPrice, anomalyId = null, currentVolume = null, entryLevel = null, cancelLevel = null) {
@@ -531,7 +581,8 @@ class VirtualTradingBaseService {
       currentVolume: currentVolume, // Добавляем текущий объем свечи
       volumeIncrease: null, // Увеличение объема в разах (будет установлено позже)
       entryLevel: entryLevel, // Уровень входа для отслеживания
-      cancelLevel: cancelLevel // Уровень отмены для отслеживания
+      cancelLevel: cancelLevel, // Уровень отмены для отслеживания
+      bezubitok: false // Режим безубытка
     };
 
     this.activeTrades.set(symbol, trade);
@@ -625,6 +676,9 @@ class VirtualTradingBaseService {
     // Ограничить прогресс от 0 до 100%
     takeProfitProgress = Math.max(0, Math.min(100, takeProfitProgress));
     
+    // Добавить информацию о безубытке
+    const bezubitokInfo = trade.bezubitok ? '\n🟢 БЕЗУБЫТОК: Да' : '';
+    
     return `${symbol} → ${trade.type} ${emoji} ЗАКРЫТА
 🆔 ID: ${trade.anomalyId || trade.id || 'N/A'}
 🕐 Время закрытия: ${closeTime}
@@ -635,7 +689,7 @@ class VirtualTradingBaseService {
 🎯 Тейк: $${trade.takeProfit.toFixed(6)} (${takeProfitProgress.toFixed(0)}% прогресс)
 📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease}x` : 'N/A'}
 ⏱️ Длительность: ${Math.round(trade.duration / 1000 / 60)} минут
-🎯 Причина: ${reasonText}
+🎯 Причина: ${reasonText}${bezubitokInfo}
 
 📈 ТЕКУЩАЯ СТАТИСТИКА:
 • Всего сделок: ${stats.totalTrades}
@@ -860,6 +914,9 @@ class VirtualTradingBaseService {
 💵 Виртуальная сумма: $${trade.virtualAmount}
 📊 Объем: ${trade.volumeIncrease ? `${trade.volumeIncrease.toFixed(1)}x` : 'N/A'}
 
+💡 БЕЗУБЫТОК: При достижении 20% прогресса к тейк-профиту
+🛑 стоп-лосс автоматически изменится на +6% от цены входа
+
 📈 ТЕКУЩАЯ СТАТИСТИКА:
 • Всего сделок: ${stats.totalTrades}
 • Прибыльных: ${stats.winningTrades} 🟢
@@ -881,6 +938,51 @@ class VirtualTradingBaseService {
     } catch (error) {
       console.error('❌ Ошибка отправки уведомления о существующих сделках:', error.message);
     }
+  }
+
+  /**
+   * Отправить уведомление о переходе в безубыток (общая логика)
+   */
+  async sendBezubitokNotification(trade, progressToTakeProfit) {
+    try {
+      if (!this.notificationService) return;
+      
+      const message = this.createBezubitokMessage(trade, progressToTakeProfit);
+      await this.notificationService.sendTelegramMessage(message);
+      console.log('✅ Уведомление о переходе в безубыток отправлено');
+    } catch (error) {
+      console.error('❌ Ошибка отправки уведомления о безубытке:', error.message);
+    }
+  }
+
+  /**
+   * Создать сообщение о переходе в безубыток (общая логика)
+   */
+  createBezubitokMessage(trade, progressToTakeProfit) {
+    const symbol = trade.symbol.replace('/USDT', '');
+    const emoji = trade.type === 'Long' ? '🟢' : '🔴';
+    
+    // Форматировать время перехода в безубыток
+    const bezubitokTime = new Date().toLocaleString('ru-RU', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
+    return `🟢 БЕЗУБЫТОК: ${symbol} → ${trade.type} ${emoji}
+🆔 ID: ${trade.anomalyId || trade.id || 'N/A'}
+🕐 Время: ${bezubitokTime}
+
+💰 Вход: $${trade.entryPrice.toFixed(6)}
+📈 Текущая цена: $${trade.lastPrice.toFixed(6)}
+📊 Прогресс к тейк-профиту: ${progressToTakeProfit.toFixed(1)}%
+🛑 Новый стоп-лосс: $${trade.stopLoss.toFixed(6)} (+6% от входа)
+
+💡 Сделка переведена в режим безубытка!
+🎯 Теперь стоп-лосс гарантирует прибыль в 6%`;
   }
 
   /**
@@ -921,7 +1023,10 @@ class VirtualTradingBaseService {
         // Определить иконку прогресса
         const progressEmoji = takeProfitProgress > 0 ? '🟢' : '⚪';
         
-        message += `• ${symbol} ${changeEmoji}\n`;
+        // Добавить индикатор безубытка
+        const bezubitokIndicator = trade.bezubitok ? ' 🟢 БЕЗУБЫТОК' : '';
+        
+        message += `• ${symbol} ${changeEmoji}${bezubitokIndicator}\n`;
         message += `  🕐 Вход: ${entryTime}\n`;
         message += `  💰 Точка входа: $${trade.entryPrice.toFixed(6)}\n`;
         message += `  📈 Текущая цена: $${lastPrice.toFixed(6)}\n`;
@@ -960,7 +1065,10 @@ class VirtualTradingBaseService {
         // Определить иконку прогресса
         const progressEmoji = takeProfitProgress > 0 ? '🟢' : '⚪';
         
-        message += `• ${symbol} ${changeEmoji}\n`;
+        // Добавить индикатор безубытка
+        const bezubitokIndicator = trade.bezubitok ? ' 🟢 БЕЗУБЫТОК' : '';
+        
+        message += `• ${symbol} ${changeEmoji}${bezubitokIndicator}\n`;
         message += `  🕐 Вход: ${entryTime}\n`;
         message += `  💰 Точка входа: $${trade.entryPrice.toFixed(6)}\n`;
         message += `  📈 Текущая цена: $${lastPrice.toFixed(6)}\n`;
