@@ -1,0 +1,131 @@
+{
+  "lastUpdated": "2025-08-01T11:31:48.317Z",
+  "totalTrades": 6,
+  "winningTrades": 0,
+  "losingTrades": 6,
+  "winRate": 0,
+  "totalProfit": -3.4443529080014508,
+  "averageProfit": -0.57,
+  "bestTrade": {
+    "symbol": "CVC/USDT",
+    "type": "Long",
+    "profitLoss": -0.5042462845010649,
+    "entryTime": "2025-08-01T08:45:15.496Z"
+  },
+  "worstTrade": {
+    "symbol": "ZRX/USDT",
+    "type": "Long",
+    "profitLoss": -0.6952841596130499,
+    "entryTime": "2025-07-31T18:48:59.741Z"
+  },
+  "longestTrade": {
+    "symbol": "GRT/USDT",
+    "type": "Long",
+    "duration": 4500380,
+    "entryTime": "2025-08-01T08:45:15.508Z"
+  },
+  "shortestTrade": {
+    "symbol": "1INCH/USDT",
+    "type": "Long",
+    "duration": 900123,
+    "entryTime": "2025-07-31T23:15:06.036Z"
+  },
+  "monthlyStats": {},
+  "dailyStats": {},
+  "tradeHistory": [
+    {
+      "id": "STORJ/USDT_1753986627635",
+      "symbol": "STORJ/USDT",
+      "type": "Long",
+      "entryPrice": 0.27715,
+      "exitPrice": 0.275675,
+      "profitLoss": -0.5322027782789118,
+      "entryTime": "2025-07-31T18:30:27.635Z",
+      "exitTime": "2025-07-31T19:15:57.113Z",
+      "closeReason": "stop_loss",
+      "duration": 2729478
+    },
+    {
+      "id": "ZRX/USDT_1753987739741",
+      "symbol": "ZRX/USDT",
+      "type": "Long",
+      "entryPrice": 0.2481,
+      "exitPrice": 0.246375,
+      "profitLoss": -0.6952841596130499,
+      "entryTime": "2025-07-31T18:48:59.741Z",
+      "exitTime": "2025-07-31T19:15:57.114Z",
+      "closeReason": "stop_loss",
+      "duration": 1617373
+    },
+    {
+      "id": "1INCH/USDT_1754003706036",
+      "symbol": "1INCH/USDT",
+      "type": "Long",
+      "entryPrice": 0.2524,
+      "exitPrice": 0.25095,
+      "profitLoss": -0.5744849445324908,
+      "entryTime": "2025-07-31T23:15:06.036Z",
+      "exitTime": "2025-07-31T23:30:06.159Z",
+      "closeReason": "stop_loss",
+      "duration": 900123
+    },
+    {
+      "id": "ASTR/USDT_1754023510959",
+      "symbol": "ASTR/USDT",
+      "type": "Long",
+      "entryPrice": 0.0234,
+      "exitPrice": 0.0232675,
+      "profitLoss": -0.5662393162393191,
+      "entryTime": "2025-08-01T04:45:10.959Z",
+      "exitTime": "2025-08-01T05:30:11.565Z",
+      "closeReason": "stop_loss",
+      "duration": 2700606
+    },
+    {
+      "id": "CVC/USDT_1754037915496",
+      "symbol": "CVC/USDT",
+      "type": "Long",
+      "entryPrice": 0.0942,
+      "exitPrice": 0.093725,
+      "profitLoss": -0.5042462845010649,
+      "entryTime": "2025-08-01T08:45:15.496Z",
+      "exitTime": "2025-08-01T09:34:15.858Z",
+      "closeReason": "stop_loss",
+      "duration": 2940362
+    },
+    {
+      "id": "GRT/USDT_1754037915508",
+      "symbol": "GRT/USDT",
+      "type": "Long",
+      "entryPrice": 0.0918,
+      "exitPrice": 0.091275,
+      "profitLoss": -0.5718954248366138,
+      "entryTime": "2025-08-01T08:45:15.508Z",
+      "exitTime": "2025-08-01T10:00:15.888Z",
+      "closeReason": "stop_loss",
+      "duration": 4500380
+    }
+  ],
+  "systemStartTime": "2025-07-31T17:55:25.002Z",
+  "totalDaysRunning": 1,
+  "averageTradesPerDay": 6,
+  "watchlistStats": {
+    "sessionStartTime": "2025-08-01T11:31:48.314Z",
+    "lastUpdated": "2025-08-01T11:31:48.316Z",
+    "totalAnomaliesProcessed": 2,
+    "currentAnomaliesCount": 1,
+    "convertedToTrades": 0,
+    "removedFromWatchlist": 0,
+    "averageVolumeLeverage": 8.3,
+    "averageWatchlistTimeMinutes": 0,
+    "longAnomaliesCount": 0,
+    "shortAnomaliesCount": 1,
+    "consolidatedAnomaliesCount": 0,
+    "unconsolidatedAnomaliesCount": 0,
+    "topVolumeLeverages": [
+      8.3
+    ],
+    "conversionRate": 0,
+    "sessionDurationMinutes": 0
+  }
+}

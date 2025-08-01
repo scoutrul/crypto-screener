@@ -1,8 +1,8 @@
 {
   "meta": {
     "sessionStats": {
-      "sessionStartTime": "2025-07-31T17:55:14.434Z",
-      "lastUpdated": "2025-07-31T17:55:14.435Z",
+      "sessionStartTime": "2025-08-01T12:08:49.717Z",
+      "lastUpdated": "2025-08-01T12:08:49.718Z",
       "totalAnomaliesProcessed": 0,
       "currentAnomaliesCount": 0,
       "convertedToTrades": 0,
@@ -20,8 +20,8 @@
     "fileInfo": {
       "version": "2.0",
       "description": "Pending anomalies with session statistics",
-      "createdAt": "2025-07-31T17:55:14.434Z",
-      "lastModified": "2025-07-31T17:55:14.435Z"
+      "createdAt": "2025-08-01T12:08:49.717Z",
+      "lastModified": "2025-08-01T12:08:49.718Z"
     }
   },
   "anomalies": []

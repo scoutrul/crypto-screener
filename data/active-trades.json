@@ -1,1 +1,73 @@
-[]
+[
+  {
+    "id": "STG/USDT_1754037524685",
+    "anomalyId": "STG_1754036271655",
+    "symbol": "STG/USDT",
+    "type": "Long",
+    "entryPrice": 0.15760000000000002,
+    "stopLoss": 0.156812,
+    "takeProfit": 0.16154000000000002,
+    "entryTime": "2025-08-01T08:38:44.685Z",
+    "status": "open",
+    "lastPrice": 0.157875,
+    "lastUpdateTime": "2025-08-01T10:15:47.422Z",
+    "currentVolume": 0,
+    "volumeIncrease": 0.15757780000000002,
+    "bezubitok": false,
+    "volumeLeverage": 0.15757780000000002,
+    "dynamicTakeProfitPercent": 0.025,
+    "tradeLevels": [
+      {
+        "levelNumber": 1,
+        "volumeAmount": 1000,
+        "targetPrice": 0.15760000000000002,
+        "tradeType": "Long",
+        "isExecuted": true,
+        "executionPrice": 0.157775,
+        "executionTime": "2025-08-01T10:10:45.936Z",
+        "profitLoss": 0.8100729695430248,
+        "profitLossPercent": 0.08100729695430248,
+        "commission": 0.3003331218274111
+      },
+      {
+        "levelNumber": 2,
+        "volumeAmount": 200,
+        "targetPrice": 0.15769456,
+        "tradeType": "Long",
+        "isExecuted": true,
+        "executionPrice": 0.157775,
+        "executionTime": "2025-08-01T10:10:45.936Z",
+        "profitLoss": 0.16201459390860495,
+        "profitLossPercent": 0.08100729695430248,
+        "commission": 0.06006662436548223
+      },
+      {
+        "levelNumber": 3,
+        "volumeAmount": 400,
+        "targetPrice": 0.16548000000000002,
+        "tradeType": "Long",
+        "isExecuted": false,
+        "executionPrice": null,
+        "executionTime": null,
+        "profitLoss": 0,
+        "profitLossPercent": 0,
+        "commission": 0
+      },
+      {
+        "levelNumber": 4,
+        "volumeAmount": 400,
+        "targetPrice": 0.16548000000000002,
+        "tradeType": "Long",
+        "isExecuted": false,
+        "executionPrice": null,
+        "executionTime": null,
+        "profitLoss": 0,
+        "profitLossPercent": 0,
+        "commission": 0
+      }
+    ],
+    "totalCommission": 0.36039974619289333,
+    "netProfit": 0.9720875634516297,
+    "executedLevels": 2
+  }
+]
